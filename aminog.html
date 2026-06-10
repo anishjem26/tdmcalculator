@@ -1,0 +1,1920 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Gentamicin / Amikacin TDM Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --navy:#1a3a5c; --navy-mid:#1f4e79; --blue:#2f6eb5; --blue-lt:#deeaf9;
+  --teal:#1f5c4e; --teal-lt:#e8f4f0; --green:#375623; --green-lt:#e2efda;
+  --purple:#4b2e83; --amber:#7d5a00; --amber-lt:#fff3cd;
+  --orange:#974706; --orange-lt:#fce4d6; --red:#c00000; --red-lt:#ffdce1;
+  --grey:#f2f2f2; --grey-dk:#595959; --linked:#ebf3fb; --white:#ffffff;
+  --border:#c8d8e8; --text:#1a1a2e;
+  --sans:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:#f0f4f8;color:var(--text);padding-bottom:60px;}
+
+.app-header{background:linear-gradient(135deg,#1a3a5c,#0d2137);color:#fff;padding:18px 32px;
+  display:flex;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);position:sticky;top:0;z-index:100;}
+.app-header h1{font-size:1.05rem;font-weight:600;}
+.app-header .sub{font-size:0.7rem;opacity:0.6;margin-top:2px;font-weight:300;}
+.pill{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;
+  padding:3px 10px;font-size:0.65rem;font-weight:600;letter-spacing:0.06em;color:#a8d4f5;text-transform:uppercase;}
+
+.legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;
+  border-bottom:1px solid var(--border);padding:8px 32px;font-size:0.72rem;}
+.legend-title{font-weight:600;color:var(--navy-mid);margin-right:4px;}
+.leg-item{display:flex;align-items:center;gap:5px;}
+.leg-swatch{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.12);}
+.leg-swatch.input{background:var(--blue-lt);} .leg-swatch.result{background:var(--green-lt);}
+.leg-swatch.linked{background:var(--linked);} .leg-swatch.fixed{background:var(--grey);}
+
+.patient-bar{background:#fff;border-bottom:2px solid var(--border);padding:10px 32px;
+  display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.pt-title{font-size:0.72rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;
+  letter-spacing:0.06em;margin-right:20px;white-space:nowrap;}
+.pt-fields{display:flex;gap:12px;flex-wrap:wrap;flex:1;align-items:center;}
+.pt-field{display:flex;align-items:center;gap:6px;}
+.pt-field label{font-size:0.72rem;font-weight:600;color:var(--grey-dk);white-space:nowrap;}
+.pt-field input[type=text],.pt-field input[type=date]{padding:5px 10px;background:#fffbe6;
+  border:1.5px solid #e0c840;border-radius:6px;font-family:var(--sans);font-size:0.8rem;font-weight:500;min-width:130px;}
+.btn-group{margin-left:auto;display:flex;gap:8px;}
+.action-btn{padding:7px 16px;color:#fff;border:none;border-radius:7px;font-family:var(--sans);
+  font-size:0.78rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:5px;transition:background 0.2s;}
+.btn-print{background:var(--navy-mid);} .btn-pdf{background:#c0392b;}
+.action-btn:hover{opacity:0.88;} .action-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+.tabs{display:flex;background:var(--navy);padding:0 32px;overflow-x:auto;}
+.tab-btn{padding:12px 20px;border:none;background:transparent;color:rgba(255,255,255,0.55);
+  font-family:var(--sans);font-size:0.78rem;font-weight:500;cursor:pointer;white-space:nowrap;
+  border-bottom:3px solid transparent;transition:all 0.2s;}
+.tab-btn:hover{color:rgba(255,255,255,0.85);}
+.tab-btn.active{color:#fff;border-bottom-color:#5bc0f8;}
+
+.tab-content{display:none;padding:24px 32px;}
+.tab-content.active{display:block;}
+
+.section{background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:18px;overflow:hidden;}
+.sh-navy{background:var(--navy-mid);} .sh-blue{background:var(--blue);} .sh-teal{background:var(--teal);}
+.sh-green{background:var(--green);} .sh-purple{background:var(--purple);} .sh-amber{background:var(--amber);}
+.sh-dark{background:#2d3748;} .sh-steel{background:#1f497d;} .sh-red{background:#7b1c1c;}
+.section-header{padding:10px 18px;font-size:0.78rem;font-weight:600;letter-spacing:0.04em;color:#fff;text-transform:uppercase;}
+
+.form-row{display:grid;grid-template-columns:230px 140px 70px 1fr;align-items:center;
+  gap:0;border-bottom:1px solid #eef2f7;min-height:40px;}
+.form-row:last-child{border-bottom:none;}
+.form-row .label{padding:8px 14px;font-size:0.8rem;font-weight:500;}
+.form-row .value-cell{padding:4px 8px;display:flex;align-items:center;justify-content:center;}
+.form-row .unit{padding:4px 6px;font-size:0.72rem;color:var(--grey-dk);text-align:center;}
+.form-row .desc{padding:6px 14px;font-size:0.71rem;color:#6b7a8d;font-style:italic;}
+
+input[type=number],select{width:100%;padding:6px 10px;border:1.5px solid #b8d0e8;border-radius:6px;
+  background:var(--blue-lt);color:#1a3a5c;font-family:var(--mono);font-size:0.82rem;font-weight:600;
+  text-align:center;outline:none;transition:border-color 0.15s;}
+input[type=number]:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,110,181,0.15);}
+
+.result-val{padding:6px 12px;background:var(--green-lt);border-radius:6px;font-family:var(--mono);
+  font-size:0.88rem;font-weight:600;color:var(--green);min-width:120px;text-align:center;border:1px solid #c3ddb0;}
+.result-val.highlight{background:var(--navy-mid);color:#fff;border-color:var(--navy-mid);font-size:1rem;}
+.result-val.teal{background:var(--teal-lt);color:var(--teal);border-color:#9ed0c8;}
+.result-val.red{background:var(--red-lt);color:var(--red);border-color:#f0b8b8;}
+.result-val.amber{background:var(--amber-lt);color:var(--amber);border-color:#e0c040;}
+.result-val.linked{background:var(--linked);color:var(--blue);border-color:#b8d4f0;font-style:italic;}
+.result-val.grey{background:var(--grey);color:var(--grey-dk);border-color:#ccc;}
+
+.status-banner{padding:13px 20px;border-radius:8px;font-size:0.9rem;font-weight:600;
+  text-align:center;border:2px solid transparent;margin-bottom:4px;transition:all 0.3s;}
+.st-ok{background:#e6f4e6;color:#1a5c1a;border-color:#6dbe6d;}
+.st-low{background:var(--red-lt);color:var(--red);border-color:#e88888;}
+.st-high{background:var(--amber-lt);color:var(--amber);border-color:#f0c040;}
+.st-tox{background:var(--orange-lt);color:var(--orange);border-color:#e89050;}
+.st-empty{background:var(--grey);color:var(--grey-dk);border-color:#ccc;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.note-row{padding:7px 14px;font-size:0.71rem;color:#7a8898;font-style:italic;border-bottom:1px solid #eef2f7;background:#fbfcfe;}
+.warning-bar{padding:11px 18px;background:#fff8e6;border-left:4px solid #f0c040;font-size:0.75rem;color:#7a5a00;border-radius:0 0 10px 10px;}
+.info-bar{padding:11px 18px;background:#e8f4f0;border-left:4px solid var(--teal);font-size:0.75rem;color:var(--teal);border-radius:8px;margin-bottom:16px;}
+
+.ref-table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+.ref-table th{background:var(--blue);color:#fff;padding:8px 12px;text-align:center;}
+.ref-table th:first-child{text-align:left;}
+.ref-table td{padding:7px 12px;border-bottom:1px solid #eef2f7;text-align:center;}
+.ref-table td:first-child{text-align:left;font-weight:500;}
+.rt-green{background:var(--green-lt);} .rt-amber{background:var(--amber-lt);} .rt-red{background:var(--red-lt);}
+
+.conv-banner{padding:8px 14px;background:var(--teal-lt);border-bottom:1px solid #d0e8e0;font-size:0.76rem;color:var(--teal);font-weight:600;}
+
+/* Drug free period gauge */
+.dfp-gauge{height:14px;border-radius:7px;background:#e0e8f0;margin:6px 0;overflow:hidden;position:relative;}
+.dfp-fill{height:100%;border-radius:7px;transition:width 0.4s;}
+
+.print-patient-header{display:none;}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#fff!important;padding:0!important;}
+  .app-header{position:static!important;box-shadow:none!important;}
+  .btn-group,.action-btn{display:none!important;}
+  .tabs{display:none!important;}
+  .tab-content{display:block!important;padding:12px 20px!important;}
+  .section{box-shadow:none!important;border:1px solid #ccc!important;margin-bottom:10px!important;page-break-inside:avoid;}
+  .two-col{grid-template-columns:1fr 1fr!important;gap:10px!important;}
+  .print-patient-header{display:block!important;}
+  #tab-adj{page-break-before:always;}
+  #tab-guide{page-break-before:always;}
+}
+@media(max-width:900px){
+  .two-col{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:160px 120px 55px 1fr;}
+  .tabs,.tab-content,.app-header,.legend,.patient-bar{padding-left:16px;padding-right:16px;}
+}
+@media(max-width:600px){
+  .form-row{grid-template-columns:140px 100px 45px;}
+  .form-row .desc{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div style="font-size:1.5rem;">💉</div>
+  <div>
+    <h1>Gentamicin / Amikacin — TDM Calculator</h1>
+    <div class="sub">Dose Initiation (Population PK) · Dose Adjustment (Patient-specific PK) · SDD · MDD</div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+    <span class="pill">CCPH 2nd Ed</span>
+    <span class="pill">AMG</span>
+  </div>
+</div>
+
+<div class="legend">
+  <span class="legend-title">PANDUAN WARNA:</span>
+  <div class="leg-item"><div class="leg-swatch input"></div><span>Boleh diubah (Input)</span></div>
+  <div class="leg-item"><div class="leg-swatch result"></div><span>Dikira automatik</span></div>
+  <div class="leg-item"><div class="leg-swatch linked"></div><span>Auto-linked</span></div>
+  <div class="leg-item"><div class="leg-swatch fixed"></div><span>Tetap</span></div>
+</div>
+
+<div class="patient-bar">
+  <span class="pt-title">📋 Maklumat Pesakit</span>
+  <div class="pt-fields">
+    <div class="pt-field"><label>Nama:</label><input type="text" id="pt-nama" placeholder="Nama penuh" oninput="updateHeader()"></div>
+    <div class="pt-field"><label>No. IC / MRN:</label><input type="text" id="pt-ic" placeholder="IC/MRN" oninput="updateHeader()"></div>
+    <div class="pt-field"><label>Tarikh:</label><input type="date" id="pt-tarikh" oninput="updateHeader()"></div>
+    <div class="pt-field"><label>Ward:</label><input type="text" id="pt-ward" placeholder="e.g. ICU" oninput="updateHeader()"></div>
+  </div>
+  <div class="btn-group">
+    <button class="action-btn btn-print" onclick="window.print()">🖨️ Cetak</button>
+    <button class="action-btn btn-pdf" id="pdf-btn" onclick="exportPDF()"><span id="pdf-label">📄 Export PDF</span></button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('init',this)">Dose Initiation (Pop PK)</button>
+  <button class="tab-btn" onclick="switchTab('adj',this)">Dose Adjustment (Patient PK)</button>
+  <button class="tab-btn" onclick="switchTab('sdd',this)">SDD — Two-level</button>
+  <button class="tab-btn" onclick="switchTab('guide',this)">Dosing Guidelines</button>
+</div>
+
+<!-- ═══════════ TAB 1: DOSE INITIATION (Population PK) ═══════════ -->
+<div class="tab-content active" id="tab-init">
+  <div class="print-patient-header" id="ph-init"></div>
+
+  <div class="info-bar">
+    💡 <strong>mg/L = mcg/mL</strong> — Untuk aminoglycoside, kedua-dua unit adalah setara (MW Gentamicin ≈ 477 g/mol, tapi secara klinikal mg/L = mcg/mL digunakan terus).
+  </div>
+
+  <div class="two-col">
+    <!-- LEFT: Patient inputs -->
+    <div>
+      <div class="section">
+        <div class="section-header sh-blue">INPUT PESAKIT</div>
+        <div class="form-row">
+          <div class="label">Drug</div>
+          <div class="value-cell">
+            <select id="i-drug" onchange="applyTargets()">
+              <option value="gent">Gentamicin</option>
+              <option value="amik">Amikacin</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Pilih aminoglycoside</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Umur (tahun)</div>
+          <div class="value-cell"><input type="number" id="i-age" value="45" step="1" oninput="calcInit()"></div>
+          <div class="unit">thn</div>
+          <div class="desc">Umur pesakit</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Jantina</div>
+          <div class="value-cell">
+            <select id="i-sex" onchange="calcInit()">
+              <option value="M">Lelaki</option>
+              <option value="F">Perempuan</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Untuk kiraan IBW & CrCL</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Tinggi (cm)</div>
+          <div class="value-cell"><input type="number" id="i-ht" value="165" step="1" oninput="calcInit()"></div>
+          <div class="unit">cm</div>
+          <div class="desc">Untuk kiraan IBW</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Berat Badan ABW (kg)</div>
+          <div class="value-cell"><input type="number" id="i-abw" value="65" step="1" oninput="calcInit()"></div>
+          <div class="unit">kg</div>
+          <div class="desc">Actual body weight</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Serum Creatinine (SCr)</div>
+          <div class="value-cell"><input type="number" id="i-scr-raw" value="88.4" step="1" oninput="calcInit()"></div>
+          <div class="unit">
+            <select id="i-scr-unit" onchange="calcInit()" style="font-size:0.68rem;padding:3px;">
+              <option value="umol">µmol/L</option>
+              <option value="mgdl">mg/dL</option>
+            </select>
+          </div>
+          <div class="desc">µmol/L ÷ 88.4 = mg/dL &nbsp;|&nbsp; <span style="color:var(--teal);font-weight:600;">Faktor konversi: 88.4</span></div>
+        </div>
+        <div id="scr-conv-row" style="display:none;padding:4px 14px 6px;background:var(--teal-lt);">
+          <span style="font-size:0.75rem;color:var(--teal);font-weight:600;">
+            🔄 <span id="scr-conv-val">—</span> µmol/L ÷ 88.4 = <strong id="scr-conv-result">—</strong> mg/dL → digunakan dalam kiraan
+          </span>
+        </div>
+        <div class="form-row">
+          <div class="label">Kumpulan Pesakit</div>
+          <div class="value-cell">
+            <select id="i-pop" onchange="calcInit()">
+              <option value="adult">Dewasa</option>
+              <option value="peds">Pediatrik</option>
+              <option value="obese">Obes (&gt;30% IBW)</option>
+              <option value="cf">Cystic Fibrosis</option>
+              <option value="neonate">Neonatus</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Menentukan Vd/kg populasi</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header sh-steel">BERAT BADAN KIRAAN</div>
+        <div class="form-row">
+          <div class="label">IBW (kg)</div>
+          <div class="value-cell"><span class="result-val linked" id="r-ibw">—</span></div>
+          <div class="unit">kg</div>
+          <div class="desc">M: 50+0.9×(H_cm–152) | F: 45.5+0.9×(H_cm–152) [CCPH formula]</div>
+        </div>
+        <div class="form-row">
+          <div class="label">AdjBW (kg)</div>
+          <div class="value-cell"><span class="result-val linked" id="r-adjbw">—</span></div>
+          <div class="unit">kg</div>
+          <div class="desc">IBW + 0.4×(ABW–IBW) — jika obes</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Dosing Weight (kg)</div>
+          <div class="value-cell"><span class="result-val highlight" id="r-dw">—</span></div>
+          <div class="unit">kg</div>
+          <div class="desc">Auto: ABW/IBW &gt;1.2 → AdjBW (obes) | ≤0.75 → ABW×1.13 | Lain → IBW</div>
+        </div>
+        <div class="note-row" id="r-dw-note">—</div>
+        <div id="r-obese-flag" style="display:none;padding:7px 14px;background:#fff3e0;border-left:4px solid #e67e22;font-size:0.75rem;color:#7b3c00;font-weight:600;">
+          ⚡ Obes dikesan (ABW/IBW &gt;1.2) — Dosing Weight &amp; Vd auto-guna AdjBW
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: PK calculations -->
+    <div>
+      <div class="section">
+        <div class="section-header sh-teal">KIRAAN PK — Population Estimate</div>
+        <div class="form-row">
+          <div class="label">Vd/kg (L/kg)</div>
+          <div class="value-cell"><span class="result-val linked" id="r-vdkg">—</span></div>
+          <div class="unit">L/kg</div>
+          <div class="desc">Mengikut kumpulan pesakit</div>
+        </div>
+        <div class="form-row">
+          <div class="label">a) Vd (L)</div>
+          <div class="value-cell"><span class="result-val" id="r-vd">—</span></div>
+          <div class="unit">L</div>
+          <div class="desc">Vd = Vd/kg × Dosing Weight</div>
+        </div>
+        <div class="form-row">
+          <div class="label">b) CrCL (mL/min)</div>
+          <div class="value-cell"><span class="result-val teal" id="r-crcl">—</span></div>
+          <div class="unit">mL/min</div>
+          <div class="desc">CG: (140–age)×BW×1.04(F)/1.23(M) ÷ SCr(µmol/L)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">c) CL<sub>amg</sub> (L/hr)</div>
+          <div class="value-cell"><span class="result-val" id="r-cl">—</span></div>
+          <div class="unit">L/hr</div>
+          <div class="desc">CL = CrCL (mL/min) × 60/1000</div>
+        </div>
+        <div class="form-row">
+          <div class="label">d) Ke (hr⁻¹)</div>
+          <div class="value-cell"><span class="result-val" id="r-ke">—</span></div>
+          <div class="unit">hr⁻¹</div>
+          <div class="desc">Ke = CL ÷ Vd</div>
+        </div>
+        <div class="form-row">
+          <div class="label">e) t½ (hr)</div>
+          <div class="value-cell"><span class="result-val" id="r-t12">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc">t½ = 0.693 ÷ Ke</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header sh-green">KIRAAN DOS AWAL</div>
+        <div class="form-row">
+          <div class="label">Strategi Dos</div>
+          <div class="value-cell">
+            <select id="i-mode" onchange="applyTargets()" style="font-size:0.8rem;">
+              <option value="mdd">MDD — Multiple Daily Dosing</option>
+              <option value="sdd">SDD — Single Daily Dosing</option>
+              <option value="synergy">Synergy Dosing</option>
+              <option value="neonate">Neonates</option>
+              <option value="hd">Haemodialysis</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Auto-isi target Cmax &amp; Cmin berdasarkan handbook [CCPH]</div>
+        </div>
+        <div id="mode-target-hint" style="padding:6px 14px;background:var(--teal-lt);border-bottom:1px solid #eef2f7;font-size:0.75rem;color:var(--teal);font-weight:600;">
+          —
+        </div>
+        <div class="form-row">
+          <div class="label">Target Cmax (mg/L)</div>
+          <div class="value-cell"><input type="number" id="i-tgt-cmax" value="8" step="0.5" oninput="calcInit()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc" id="tgt-cmax-hint">MDD Gent: 5–10 | SDD: 10–30 | Synergy: 3–5</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Target Cmin (mg/L)</div>
+          <div class="value-cell"><input type="number" id="i-tgt-cmin" value="1" step="0.5" oninput="calcInit()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc" id="tgt-cmin-hint">MDD Gent: &lt;2 | SDD: &lt;1</div>
+        </div>
+        <div class="form-row">
+          <div class="label">f) Dosing Interval τ (hr)</div>
+          <div class="value-cell"><span class="result-val teal" id="r-tau">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc">τ = (ln Cmax − ln Cmin) ÷ Ke → dibundarkan ke 8/12/24/48h</div>
+        </div>
+        <!-- τ step-by-step breakdown -->
+        <div id="tau-breakdown" style="padding:10px 14px 12px;background:#f4f8ff;border-bottom:1px solid #eef2f7;font-size:0.8rem;display:none;">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">Langkah kiraan τ:</div>
+          <div style="font-family:var(--mono);line-height:2.2;color:var(--text);">
+            <div>τ &nbsp;= (ln <span id="tb-cmax" style="color:var(--green);font-weight:700;">—</span> − ln <span id="tb-cmin" style="color:var(--teal);font-weight:700;">—</span>) ÷ Ke</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;= (<span id="tb-lncmax" style="color:var(--green);">—</span> − <span id="tb-lncmin" style="color:var(--teal);">—</span>) ÷ <span id="tb-ke" style="color:var(--navy-mid);">—</span></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;= <span id="tb-numerator" style="color:var(--navy-mid);">—</span> ÷ <span id="tb-ke2" style="color:var(--navy-mid);">—</span></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;= <span id="tb-tauraw" style="color:var(--orange);font-weight:700;">—</span> hr (raw)</div>
+            <div style="margin-top:4px;">&nbsp;&nbsp;&nbsp;&nbsp;≈ <span id="tb-taurnd" style="color:var(--blue);font-weight:700;font-size:1rem;">—</span> hr (dibundarkan ke selang logik)</div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="label">g) Initial Dose (mg)</div>
+          <div class="value-cell"><span class="result-val highlight" id="r-dose-init">—</span></div>
+          <div class="unit">mg</div>
+          <div class="desc">Dose = Cmax × Vd × (1−e^(−Ke×τ))</div>
+        </div>
+        <div class="form-row">
+          <div class="label">g) Dose — dibundarkan ↑250 mg</div>
+          <div class="value-cell"><span class="result-val grey" id="r-dose-250">—</span></div>
+          <div class="unit">mg</div>
+          <div class="desc">Dibundarkan ke atas ke 250 mg (handbook rounds to nearest 250)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">h) Expected Cmax — exact (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="r-exp-cmax">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmax = Dose ÷ [Vd × (1−e^(−Ke×τ))]</div>
+        </div>
+        <div class="form-row">
+          <div class="label">h) Expected Cmax — rounded dose</div>
+          <div class="value-cell"><span class="result-val teal" id="r-exp-cmax-250">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmax dengan dos dibundarkan ke 250 mg</div>
+        </div>
+        <div class="form-row">
+          <div class="label">i) Expected Cmin — exact (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="r-exp-cmin">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmin = Cmax × e^(−Ke×τ)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">i) Expected Cmin — rounded dose</div>
+          <div class="value-cell"><span class="result-val teal" id="r-exp-cmin-250">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmin dengan dos dibundarkan ke 250 mg</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Status -->
+  <div class="status-banner st-empty" id="init-status">Isi nilai di atas untuk melihat interpretasi</div>
+
+  <div class="warning-bar">⚠ Kiraan adalah panduan sahaja berdasarkan CCPH 2nd Ed. mg/L = mcg/mL untuk aminoglycoside dalam konteks klinikal.</div>
+</div>
+
+
+<!-- ═══════════ TAB 2: DOSE ADJUSTMENT (Patient-specific PK) ═══════════ -->
+<div class="tab-content" id="tab-adj">
+  <div class="print-patient-header" id="ph-adj"></div>
+
+  <div class="info-bar">
+    📐 <strong>Conventional Dosing — Apabila Pre & Post concentrations tersedia.</strong>
+    Sampling: Pre-dose (trough) dan Post-dose (peak, ~30 min selepas infusi selesai).
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="section">
+        <div class="section-header sh-blue">INPUT — Dos & Bacaan Semasa</div>
+        <div class="form-row">
+          <div class="label">Drug</div>
+          <div class="value-cell">
+            <select id="a-drug" onchange="calcAdj()">
+              <option value="gent">Gentamicin</option>
+              <option value="amik">Amikacin</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Pilih aminoglycoside</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Dos semasa (mg)</div>
+          <div class="value-cell"><input type="number" id="a-dose" value="120" step="10" oninput="calcAdj()"></div>
+          <div class="unit">mg</div>
+          <div class="desc">Dos setiap pemberian</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Interval semasa τ (hr)</div>
+          <div class="value-cell"><input type="number" id="a-tau" value="8" step="1" oninput="calcAdj()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Selang dos semasa</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Cpost (mg/L) — C2</div>
+          <div class="value-cell"><input type="number" id="a-cpost" value="7.2" step="0.1" oninput="calcAdj()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Post-dose level (peak area)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Cpre (mg/L) — C1</div>
+          <div class="value-cell"><input type="number" id="a-cpre" value="1.1" step="0.1" oninput="calcAdj()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Pre-dose level (trough)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">t2 − t1 (hr)</div>
+          <div class="value-cell"><input type="number" id="a-t2t1" value="3.5" step="0.5" oninput="calcAdj()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Masa antara pre-sample & post-sample</div>
+        </div>
+        <div class="form-row">
+          <div class="label">t′ post infusion (hr)</div>
+          <div class="value-cell"><input type="number" id="a-tpost" value="0.5" step="0.25" oninput="calcAdj()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Masa dari TAMAT infusi → post-sample diambil</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Vd (L) — untuk kiraan dos</div>
+          <div class="value-cell"><span class="result-val linked" id="a-vd-calc">—</span></div>
+          <div class="unit">L</div>
+          <div class="desc">Auto: Dose ÷ [Cmax × (1−e^(−Ke×τ))] — atau override:</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Override Vd (L)</div>
+          <div class="value-cell"><input type="number" id="a-vd" value="" step="0.1" placeholder="auto" oninput="calcAdj()"></div>
+          <div class="unit">L</div>
+          <div class="desc">Kosongkan untuk guna Vd auto. Isi untuk override manual.</div>
+        </div>
+      </div>
+
+      <!-- Neonatal τ recommendation -->
+      <div class="section" id="neonate-tau-section" style="display:none;">
+        <div class="section-header" style="background:#1f497d;">🍼 NEONATES — Cadangan Interval Dos (Berdasarkan Cpre)</div>
+        <div class="note-row">Berdasarkan jadual CCPH: semak Cpre/trough pada 24 jam untuk tentukan interval seterusnya.</div>
+        <div style="overflow-x:auto;padding:4px;">
+          <table class="ref-table" style="font-size:0.8rem;">
+            <thead>
+              <tr>
+                <th>Concentration pada 24h (mg/L)</th>
+                <th>t½ (anggaran)</th>
+                <th>Interval Cadangan</th>
+                <th style="background:#1a3a5c;">Status Pesakit</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr id="neonate-row-0" class="rt-green"><td>≤ 1</td><td>~8 jam</td><td>24 jam</td><td id="neonate-match-0"></td></tr>
+              <tr id="neonate-row-1" class="rt-amber"><td>1.1 – 2.3</td><td>~12 jam</td><td>36 jam</td><td id="neonate-match-1"></td></tr>
+              <tr id="neonate-row-2" class="rt-amber"><td>2.4 – 3.2</td><td>~15 jam</td><td>48 jam</td><td id="neonate-match-2"></td></tr>
+              <tr id="neonate-row-3" class="rt-red"><td>≥ 3.3</td><td>—</td><td>Ukur semula selepas 24 jam</td><td id="neonate-match-3"></td></tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="status-banner st-empty" id="neonate-tau-verdict" style="margin:8px 14px 12px;">—</div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section">
+        <div class="section-header sh-teal">KIRAAN PK — Patient-Specific</div>
+        <div class="form-row">
+          <div class="label">a) Ke (hr⁻¹)</div>
+          <div class="value-cell"><span class="result-val" id="a-ke">—</span></div>
+          <div class="unit">hr⁻¹</div>
+          <div class="desc">Ke = (ln C2 − ln C1) ÷ (τ − (t2−t1))</div>
+        </div>
+        <div class="form-row">
+          <div class="label">b) t½ (hr)</div>
+          <div class="value-cell"><span class="result-val" id="a-t12">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc">t½ = 0.693 ÷ Ke</div>
+        </div>
+        <div class="form-row">
+          <div class="label">c) Cmax (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="a-cmax">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmax = Cpost × e^(Ke × t′)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">d) Cmin (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="a-cmin">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmin = Cmax × e^(−Ke × τ)</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header sh-green">DOS BARU — Target Cmax & Cmin</div>
+        <div class="form-row">
+          <div class="label">Mod Pesakit</div>
+          <div class="value-cell">
+            <select id="a-mode" onchange="calcAdj()" style="font-size:0.8rem;">
+              <option value="std">Standard (Adult/Peds)</option>
+              <option value="neonate">Neonates</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Neonates: guna jadual Cpre@24h untuk tentukan τ baru</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Target Cmax baru (mg/L)</div>
+          <div class="value-cell"><input type="number" id="a-tgt-cmax" value="10" step="0.5" oninput="calcAdj()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc" id="a-tgt-hint">Neonates Gent: 5–12 | MDD: 5–10 | SDD: 10–30</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Target Cmin baru (mg/L)</div>
+          <div class="value-cell"><input type="number" id="a-tgt-cmin" value="1" step="0.5" oninput="calcAdj()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Neonates: &lt;1 | MDD: &lt;2 | SDD: &lt;1</div>
+        </div>
+        <div class="form-row">
+          <div class="label">e) New τ (hr)</div>
+          <div class="value-cell"><span class="result-val teal" id="a-new-tau">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc" id="a-tau-desc">Standard: (ln Cmax − ln Cmin) ÷ Ke | Neonates: guna jadual Cpre@24h</div>
+        </div>
+        <div class="form-row">
+          <div class="label">f) New Dose (mg)</div>
+          <div class="value-cell"><span class="result-val highlight" id="a-new-dose">—</span></div>
+          <div class="unit">mg</div>
+          <div class="desc">New Dose = Cmax × Vd × (1−e^(−Ke×τ))</div>
+        </div>
+        <div class="form-row">
+          <div class="label">g) Expected Cmax (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="a-exp-cmax">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc"></div>
+        </div>
+        <div class="form-row">
+          <div class="label">h) Expected Cmin (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="a-exp-cmin">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc"></div>
+        </div>
+      </div>
+
+      <!-- Status banners -->
+      <div class="status-banner st-empty" id="adj-cmax-status" style="margin-bottom:6px;">—</div>
+      <div class="status-banner st-empty" id="adj-cmin-status">—</div>
+    </div>
+  </div>
+
+  <!-- ── CADANGAN DOS — Tarikh & Masa ── -->
+  <div class="section" id="dose-recommendation-section" style="margin-bottom:18px;">
+    <div class="section-header" style="background:#1a3a5c;font-size:0.82rem;padding:12px 18px;">
+      📋 CADANGAN DOS — Jadual Pemberian &amp; Semakan TDM
+    </div>
+    <div class="note-row">
+      Masukkan tarikh dan masa dos terkini untuk jana cadangan dos seterusnya dan jadual sampling TDM.
+    </div>
+
+    <!-- Inputs: last dose datetime + route -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+      <div class="form-row" style="border-right:1px solid #eef2f7;">
+        <div class="label">Tarikh &amp; Masa Dos Terkini</div>
+        <div class="value-cell" style="flex-direction:column;gap:4px;">
+          <input type="date" id="rec-date" oninput="calcRecommendation()"
+            style="width:100%;padding:6px 8px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.8rem;font-weight:600;outline:none;">
+          <input type="time" id="rec-time" value="12:00" oninput="calcRecommendation()"
+            style="width:100%;padding:6px 8px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.8rem;font-weight:600;outline:none;">
+        </div>
+        <div class="unit"></div>
+        <div class="desc">Tarikh &amp; masa dos terkini diberikan</div>
+      </div>
+      <div class="form-row">
+        <div class="label">Jangkaan Dos Baru (mg)</div>
+        <div class="value-cell"><span class="result-val highlight" id="rec-dose-display">—</span></div>
+        <div class="unit">mg</div>
+        <div class="desc">Dari kiraan dos baru di atas</div>
+      </div>
+    </div>
+
+    <!-- Output: recommendation card -->
+    <div id="rec-output" style="margin:12px 16px 16px;padding:16px 18px;border-radius:10px;background:#f0f6ff;border:2px solid var(--blue);display:none;">
+
+      <div style="font-size:0.85rem;font-weight:700;color:var(--navy-mid);margin-bottom:12px;padding-bottom:8px;border-bottom:2px solid var(--border);">
+        💊 CADANGAN DOS BARU
+      </div>
+
+      <!-- Next dose -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;">
+        <div style="background:#fff;border-radius:8px;padding:12px;border:1px solid var(--green-lt);">
+          <div style="font-size:0.7rem;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:6px;">📅 Dos Seterusnya</div>
+          <div style="font-family:var(--mono);font-size:1rem;font-weight:700;color:var(--navy-mid);" id="rec-next-dt">—</div>
+          <div style="font-size:0.72rem;color:var(--grey-dk);margin-top:3px;" id="rec-interval-label">—</div>
+        </div>
+        <div style="background:#fff;border-radius:8px;padding:12px;border:1px solid var(--teal-lt);">
+          <div style="font-size:0.7rem;font-weight:700;color:var(--teal);text-transform:uppercase;margin-bottom:6px;">💉 Dos &amp; Cara Pemberian</div>
+          <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--teal);" id="rec-dose-label">—</div>
+          <div style="font-size:0.72rem;color:var(--grey-dk);margin-top:3px;" id="rec-targets-label">—</div>
+        </div>
+      </div>
+
+      <!-- TDM sampling schedule -->
+      <div style="background:#fff;border-radius:8px;padding:12px;border:1px solid var(--amber-lt);margin-bottom:10px;">
+        <div style="font-size:0.7rem;font-weight:700;color:var(--amber);text-transform:uppercase;margin-bottom:8px;">🔬 JADUAL SAMPLING TDM (Jika diperlukan)</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div>
+            <div style="font-size:0.72rem;font-weight:600;color:var(--grey-dk);margin-bottom:3px;">Pre-dose (Trough)</div>
+            <div style="font-family:var(--mono);font-size:0.85rem;font-weight:700;color:var(--navy-mid);" id="rec-pre-dt">—</div>
+            <div style="font-size:0.68rem;color:var(--grey-dk);">30 min sebelum dos seterusnya</div>
+          </div>
+          <div>
+            <div style="font-size:0.72rem;font-weight:600;color:var(--grey-dk);margin-bottom:3px;">Post-dose (Peak)</div>
+            <div style="font-family:var(--mono);font-size:0.85rem;font-weight:700;color:var(--navy-mid);" id="rec-post-dt">—</div>
+            <div style="font-size:0.68rem;color:var(--grey-dk);">30 min selepas infusi selesai</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Summary text -->
+      <div style="background:#fffbe6;border-radius:8px;padding:10px 14px;border-left:4px solid #e0c040;font-size:0.78rem;color:#7a5a00;line-height:1.7;" id="rec-summary">—</div>
+    </div>
+    <div style="padding:0 16px 12px;font-size:0.7rem;color:#7a8898;font-style:italic;">
+      * Jadual ini adalah cadangan sahaja. Laraskan mengikut jadual wad dan keperluan klinikal.
+    </div>
+  </div>
+
+  <div class="warning-bar">⚠ Kiraan adalah panduan sahaja. mg/L = mcg/mL. Sahkan secara klinikal.</div>
+</div>
+
+
+<!-- ═══════════ TAB 3: SDD Two-level ═══════════ -->
+<div class="tab-content" id="tab-sdd">
+  <div class="print-patient-header" id="ph-sdd"></div>
+
+  <div class="info-bar">
+    📐 <strong>Single Daily Dosing — Dua bacaan selepas dos diperlukan.</strong>
+    Sampling yang disyorkan: C2 (post 2 jam) dan C6 (post 6 jam).
+  </div>
+
+  <div class="two-col">
+    <div>
+      <div class="section">
+        <div class="section-header sh-blue">INPUT — SDD Two-Level</div>
+        <div class="form-row">
+          <div class="label">Drug</div>
+          <div class="value-cell">
+            <select id="s-drug" onchange="calcSDD()">
+              <option value="gent">Gentamicin</option>
+              <option value="amik">Amikacin</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Pilih aminoglycoside</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Dos SDD semasa (mg)</div>
+          <div class="value-cell"><input type="number" id="s-dose" value="350" step="10" oninput="calcSDD()"></div>
+          <div class="unit">mg</div>
+          <div class="desc">e.g. 7 mg/kg × BW</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Interval τ (hr)</div>
+          <div class="value-cell"><input type="number" id="s-tau" value="24" step="1" oninput="calcSDD()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Selang dos (biasanya 24h)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">C2 — Post 2 jam (mg/L)</div>
+          <div class="value-cell"><input type="number" id="s-c2" value="18" step="0.5" oninput="calcSDD()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Sampel 2 jam selepas MULA infusi</div>
+        </div>
+        <div class="form-row">
+          <div class="label">C6 — Post 6 jam (mg/L)</div>
+          <div class="value-cell"><input type="number" id="s-c6" value="8" step="0.5" oninput="calcSDD()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Sampel 6 jam selepas MULA infusi</div>
+        </div>
+        <div class="form-row">
+          <div class="label">t′ — masa C2 ke Cmax (hr)</div>
+          <div class="value-cell"><input type="number" id="s-tprime" value="1" step="0.25" oninput="calcSDD()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Anggap Cmax berlaku 1 jam selepas mula infusi</div>
+        </div>
+        <div class="form-row">
+          <div class="label">MIC (mg/L)</div>
+          <div class="value-cell"><input type="number" id="s-mic" value="1" step="0.5" oninput="calcSDD()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">MIC organisma untuk kiraan DFP</div>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="section">
+        <div class="section-header sh-teal">KIRAAN SDD — Patient-Specific</div>
+        <div class="form-row">
+          <div class="label">a) Ke (hr⁻¹)</div>
+          <div class="value-cell"><span class="result-val" id="s-ke">—</span></div>
+          <div class="unit">hr⁻¹</div>
+          <div class="desc">Ke = (ln C2 − ln C6) ÷ (t6 − t2)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">b) t½ (hr)</div>
+          <div class="value-cell"><span class="result-val" id="s-t12">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc">t½ = 0.693 ÷ Ke</div>
+        </div>
+        <div class="form-row">
+          <div class="label">c) Cmax (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="s-cmax">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmax = C2 × e^(Ke × t′)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">d) Cmin (mg/L)</div>
+          <div class="value-cell"><span class="result-val" id="s-cmin">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cmin = Cmax × e^(−Ke × τ)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">e) Vd (L) [dari dos & Cmax]</div>
+          <div class="value-cell"><span class="result-val" id="s-vd">—</span></div>
+          <div class="unit">L</div>
+          <div class="desc">Vd = Dose ÷ [Cmax × (1−e^(−Ke×τ))]</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header sh-purple">DRUG FREE PERIOD (DFP)</div>
+        <div class="note-row">DFP sasaran: 2–8 jam. Jika &gt;8 jam, pertimbangkan laraskan interval atau dos.</div>
+        <div class="form-row">
+          <div class="label">tMIC (hr)</div>
+          <div class="value-cell"><span class="result-val linked" id="s-tmic">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc">tMIC = (ln Cmax − ln MIC) ÷ Ke</div>
+        </div>
+        <div class="form-row">
+          <div class="label">DFP (hr)</div>
+          <div class="value-cell"><span class="result-val highlight" id="s-dfp">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc">DFP = τ − tmax(1hr) − tMIC</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Cmax/MIC ratio</div>
+          <div class="value-cell"><span class="result-val" id="s-cmax-mic">—</span></div>
+          <div class="unit"></div>
+          <div class="desc">Sasaran: ≥10 × MIC untuk SDD</div>
+        </div>
+        <!-- DFP gauge -->
+        <div style="padding:8px 14px 12px;">
+          <div style="font-size:0.72rem;font-weight:600;color:var(--grey-dk);margin-bottom:4px;">
+            DFP gauge (sasaran 2–8 jam):
+          </div>
+          <div class="dfp-gauge">
+            <div class="dfp-fill" id="s-dfp-fill" style="width:0%;background:var(--green);"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--grey-dk);margin-top:2px;">
+            <span>0 hr</span><span style="color:var(--green);font-weight:600;">2–8 hr sasaran</span><span>12+ hr</span>
+          </div>
+        </div>
+        <div class="status-banner st-empty" id="s-dfp-status" style="margin:0 14px 14px;">—</div>
+      </div>
+
+      <!-- Status banners for SDD -->
+      <div class="status-banner st-empty" id="s-cmax-status" style="margin-bottom:6px;">—</div>
+      <div class="status-banner st-empty" id="s-cmin-status">—</div>
+    </div>
+  </div>
+
+  <!-- ── DOS BARU SDD — Simulasi & Cadangan ── -->
+  <div class="section" id="sdd-new-dose-section">
+    <div class="section-header" style="background:#1a3a5c;font-size:0.82rem;padding:12px 18px;">
+      🔄 SIMULASI DOS BARU — Semak DFP Selepas Tukar Dos / Interval
+    </div>
+    <div class="note-row">
+      Jika DFP &gt;8 jam, pertimbangkan tingkatkan dos atau kurangkan interval. Masukkan dos cadangan dan semak DFP baru.
+    </div>
+
+    <div class="two-col">
+      <!-- LEFT: New dose inputs -->
+      <div style="padding:12px 14px 4px;">
+        <div style="font-size:0.76rem;font-weight:700;color:var(--navy-mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em;">Input Dos Cadangan</div>
+        <div class="form-row" style="background:#f8fbff;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;">
+          <div class="label">Dos baru cadangan (mg)</div>
+          <div class="value-cell"><input type="number" id="sn-dose" value="320" step="10" oninput="calcSDDNew()"></div>
+          <div class="unit">mg</div>
+          <div class="desc">Dos yang akan dicadangkan</div>
+        </div>
+        <div class="form-row" style="background:#f8fbff;border-radius:8px;border:1px solid var(--border);margin-bottom:8px;">
+          <div class="label">Interval baru τ (hr)</div>
+          <div class="value-cell"><input type="number" id="sn-tau" value="24" step="1" oninput="calcSDDNew()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Selang dos baru</div>
+        </div>
+        <!-- Step-by-step breakdown -->
+        <div id="sn-steps" style="background:#f4f8ff;border-radius:8px;padding:10px 14px;border:1px solid var(--border);font-size:0.78rem;display:none;">
+          <div style="font-size:0.72rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;margin-bottom:8px;">Kiraan langkah demi langkah:</div>
+          <div style="font-family:var(--mono);line-height:2.4;color:var(--text);">
+            <div>Expected Cmax = <span id="sn-dose-v" style="color:var(--green);font-weight:700;">—</span> ÷ [<span id="sn-vd-v" style="color:var(--teal);">—</span> × (1−e<sup>−<span id="sn-ke-v">—</span>×<span id="sn-tau-v">—</span></sup>)]</div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span id="sn-exp-cmax" style="color:var(--green);font-weight:700;">—</span> mg/L</div>
+            <div style="margin-top:4px;">Expected Cmin = <span id="sn-exp-cmax2" style="color:var(--green);">—</span> × e<sup>−<span id="sn-ke-v2">—</span>×<span id="sn-tau-v2">—</span></sup></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span id="sn-exp-cmin" style="color:var(--teal);font-weight:700;">—</span> mg/L</div>
+            <div style="margin-top:4px;">tMIC = (ln <span id="sn-cmax-mic1">—</span> − ln <span id="sn-mic-v">—</span>) ÷ <span id="sn-ke-v3">—</span></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span id="sn-tmic" style="color:var(--orange);font-weight:700;">—</span> jam</div>
+            <div style="margin-top:4px;">DFP = τ − tmax − tMIC = <span id="sn-tau-v3">—</span> − 1 − <span id="sn-tmic2">—</span></div>
+            <div>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;= <span id="sn-dfp" style="color:var(--blue);font-weight:700;font-size:1rem;">—</span> jam</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Results -->
+      <div style="padding:12px 14px 4px;">
+        <div style="font-size:0.76rem;font-weight:700;color:var(--navy-mid);margin-bottom:10px;text-transform:uppercase;letter-spacing:0.04em;">Keputusan Simulasi</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div style="text-align:center;padding:10px 8px;background:var(--green-lt);border-radius:8px;">
+            <div style="font-size:0.68rem;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:4px;">Expected Cmax</div>
+            <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--green);" id="sn-r-cmax">—</div>
+            <div style="font-size:0.68rem;color:var(--grey-dk);">mg/L</div>
+          </div>
+          <div style="text-align:center;padding:10px 8px;background:var(--teal-lt);border-radius:8px;">
+            <div style="font-size:0.68rem;font-weight:700;color:var(--teal);text-transform:uppercase;margin-bottom:4px;">Expected Cmin</div>
+            <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--teal);" id="sn-r-cmin">—</div>
+            <div style="font-size:0.68rem;color:var(--grey-dk);">mg/L</div>
+          </div>
+          <div style="text-align:center;padding:10px 8px;background:var(--linked);border-radius:8px;">
+            <div style="font-size:0.68rem;font-weight:700;color:var(--blue);text-transform:uppercase;margin-bottom:4px;">tMIC</div>
+            <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--blue);" id="sn-r-tmic">—</div>
+            <div style="font-size:0.68rem;color:var(--grey-dk);">jam</div>
+          </div>
+          <div style="text-align:center;padding:10px 8px;border-radius:8px;" id="sn-dfp-card" style="background:var(--grey);">
+            <div style="font-size:0.68rem;font-weight:700;text-transform:uppercase;margin-bottom:4px;" id="sn-dfp-card-label">DFP</div>
+            <div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;" id="sn-r-dfp">—</div>
+            <div style="font-size:0.68rem;color:var(--grey-dk);">jam (sasaran 2–8)</div>
+          </div>
+        </div>
+        <!-- DFP verdict for new dose -->
+        <div class="status-banner st-empty" id="sn-dfp-verdict" style="margin-bottom:8px;">—</div>
+        <!-- Cmax/MIC -->
+        <div style="padding:8px 12px;background:#f8fbff;border-radius:8px;border:1px solid var(--border);font-size:0.78rem;">
+          Cmax/MIC ratio: <span style="font-family:var(--mono);font-weight:700;color:var(--navy-mid);" id="sn-r-cmax-mic">—</span>
+          <span style="color:var(--grey-dk);margin-left:6px;" id="sn-mic-status">—</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recommendation text output -->
+    <div id="sn-recommendation" style="margin:8px 16px 16px;padding:14px 16px;background:#fffbe6;border-radius:10px;border-left:4px solid #e0c040;font-size:0.82rem;color:#7a5a00;line-height:1.8;display:none;">—</div>
+
+    <!-- Datetime for next dose -->
+    <div style="padding:10px 14px;border-top:1px solid #eef2f7;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:0.78rem;font-weight:600;color:var(--navy-mid);">Tarikh &amp; Masa Dos Terkini:</span>
+      <input type="date" id="sn-date" oninput="calcSDDNew()"
+        style="padding:5px 8px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.8rem;font-weight:600;outline:none;">
+      <input type="time" id="sn-time" value="12:00" oninput="calcSDDNew()"
+        style="padding:5px 8px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.8rem;font-weight:600;outline:none;">
+    </div>
+    <div id="sn-datetime-output" style="padding:8px 14px 12px;font-size:0.78rem;color:var(--navy-mid);font-weight:600;display:none;"></div>
+  </div>
+
+  <div class="warning-bar">⚠ mg/L = mcg/mL. DFP dan Cmax/MIC ratio adalah panduan klinikal sahaja.</div>
+</div>
+
+
+<!-- ═══════════ TAB 4: DOSING GUIDELINES ═══════════ -->
+<div class="tab-content" id="tab-guide">
+  <div class="print-patient-header" id="ph-guide"></div>
+
+  <!-- Target concentrations -->
+  <div class="section">
+    <div class="section-header sh-navy">SASARAN KONSENTRASI — Target Concentration Range</div>
+    <div class="note-row">mg/L = mcg/mL untuk aminoglycoside dalam konteks klinikal.</div>
+    <div style="overflow-x:auto;padding:4px;">
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Strategi / Indikasi</th>
+            <th colspan="2">Gentamicin (mg/L)</th>
+            <th colspan="2">Amikacin (mg/L)</th>
+          </tr>
+          <tr>
+            <th></th>
+            <th style="background:#1f5c4e;">Trough (&lt;)</th>
+            <th style="background:#375623;">Peak</th>
+            <th style="background:#1f5c4e;">Trough (&lt;)</th>
+            <th style="background:#375623;">Peak</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="rt-amber"><td>Neonates</td><td>&lt;1</td><td>5–12</td><td>&lt;5</td><td>20–30</td></tr>
+          <tr class="rt-green"><td>MDD (Multiple Daily Dosing)</td><td>&lt;2</td><td>5–10</td><td>&lt;10</td><td>20–30</td></tr>
+          <tr class="rt-green"><td>SDD (Single Daily Dosing)</td><td>&lt;1</td><td>10–30*</td><td>&lt;1</td><td>60*</td></tr>
+          <tr class="rt-amber"><td>Synergy dosing</td><td>&lt;1</td><td>3–5</td><td>N/A</td><td>N/A</td></tr>
+          <tr><td>Haemodialysis</td><td>&lt;2</td><td>—</td><td>&lt;10</td><td>—</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warning-bar">* Peak to MIC ratio sasaran = 10:1. Individualize berdasarkan institutional MIC.</div>
+  </div>
+
+  <!-- SDD initial dosing -->
+  <div class="section">
+    <div class="section-header sh-teal">SDD — Dos Awal Berdasarkan CrCL [Approach 1]</div>
+    <div style="overflow-x:auto;padding:4px;">
+      <table class="ref-table">
+        <thead><tr><th>CrCL (mL/min)</th><th>Gentamicin</th><th>Amikacin</th></tr></thead>
+        <tbody>
+          <tr class="rt-green"><td>&gt;80</td><td>5.1 mg/kg q24h</td><td>15 mg/kg q24h</td></tr>
+          <tr class="rt-green"><td>60–80</td><td>4 mg/kg q24h</td><td>12 mg/kg q24h</td></tr>
+          <tr class="rt-amber"><td>40–60</td><td>3.5 mg/kg q24h</td><td>7.5 mg/kg q24h</td></tr>
+          <tr class="rt-amber"><td>30–40</td><td>2.5 mg/kg q24h</td><td>4 mg/kg q24h</td></tr>
+          <tr class="rt-red"><td>20–30</td><td>4 mg/kg q48h</td><td>7.5 mg/kg q48h</td></tr>
+          <tr class="rt-red"><td>10–20</td><td>3 mg/kg q48h</td><td>4 mg/kg q48h</td></tr>
+          <tr class="rt-red"><td>0–10</td><td>2 mg/kg q72h & AD*</td><td>3 mg/kg q72h & AD*</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warning-bar">*AD = After haemodialysis</div>
+  </div>
+
+  <!-- Hartford nomogram intervals -->
+  <div class="section">
+    <div class="section-header sh-purple">SDD — Hartford Nomogram [Approach 2]</div>
+    <div class="note-row">Dos tetap: Gentamicin 7 mg/kg, Amikacin 15 mg/kg. Ambil sampel 6–14 jam selepas dos pertama.</div>
+    <div style="overflow-x:auto;padding:4px;">
+      <table class="ref-table">
+        <thead><tr><th>CrCL (mL/min)</th><th>Interval Dos</th></tr></thead>
+        <tbody>
+          <tr class="rt-green"><td>≥60</td><td>q24h</td></tr>
+          <tr class="rt-amber"><td>40–59</td><td>q36h</td></tr>
+          <tr class="rt-red"><td>20–39</td><td>q48h</td></tr>
+          <tr class="rt-red"><td>&lt;20</td><td>Monitor serial — redose apabila &lt;1 mg/L</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Conventional dosing -->
+  <div class="section">
+    <div class="section-header sh-steel">MDD — Conventional Dosing</div>
+    <div style="overflow-x:auto;padding:4px;">
+      <table class="ref-table">
+        <thead><tr><th>CrCL (mL/min)</th><th>Gentamicin</th><th>Amikacin</th></tr></thead>
+        <tbody>
+          <tr class="rt-green"><td>&gt;60</td><td>1.5–2 mg/kg q8h</td><td>5–7.5 mg/kg q8h</td></tr>
+          <tr class="rt-amber"><td>40–60</td><td>1.5–2 mg/kg q12h</td><td>5–7.5 mg/kg q12h</td></tr>
+          <tr class="rt-amber"><td>20–40</td><td>1.5–2 mg/kg q24h</td><td>5–7.5 mg/kg q24h</td></tr>
+          <tr class="rt-red"><td>&lt;20</td><td>1.5–2 mg/kg q48–72h*</td><td>5–7.5 mg/kg q48–72h</td></tr>
+          <tr class="rt-red"><td>HD</td><td>LD 2–3 mg/kg → 1–2 mg/kg q48–72h*</td><td>LD 3 mg/kg → 5–7.5 q48–72h*</td></tr>
+          <tr class="rt-red"><td>CRRT</td><td>LD 3 mg/kg → 2 mg/kg q24–48h*</td><td>LD 10 mg/kg → 7.5 mg/kg q24–48h*</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warning-bar">*Redose: Gentamicin &lt;2 mg/L (UTI), &lt;3–5 mg/L (G-ve infection) | Amikacin &lt;10 mg/L</div>
+  </div>
+
+  <!-- Synergy dosing -->
+  <div class="section">
+    <div class="section-header sh-amber">SYNERGY DOSING — Gentamicin</div>
+    <div class="note-row">Kombinasi dengan beta-lactam/glycopeptide untuk G+ve infection (endocarditis). Target peak 3–5 mg/L, trough &lt;1 mg/L.</div>
+    <div style="overflow-x:auto;padding:4px;">
+      <table class="ref-table">
+        <thead><tr><th>CrCL (mL/min)</th><th>Dos Gentamicin</th></tr></thead>
+        <tbody>
+          <tr class="rt-green"><td>&gt;60</td><td>1 mg/kg q8h</td></tr>
+          <tr class="rt-amber"><td>40–60</td><td>1 mg/kg q12h</td></tr>
+          <tr class="rt-amber"><td>20–40</td><td>1 mg/kg q24h</td></tr>
+          <tr class="rt-red"><td>&lt;20</td><td>1 mg/kg loading*</td></tr>
+          <tr class="rt-red"><td>HD</td><td>1 mg/kg q48–72h*</td></tr>
+          <tr class="rt-red"><td>CRRT</td><td>1 mg/kg q24–36h*</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warning-bar">*Redose apabila Gentamicin &lt;1 mg/L</div>
+  </div>
+
+  <!-- Vd chart -->
+  <div class="section">
+    <div class="section-header sh-dark">VOLUME OF DISTRIBUTION — Vd/kg</div>
+    <div style="overflow-x:auto;padding:4px;">
+      <table class="ref-table">
+        <thead><tr><th>Kumpulan Pesakit</th><th>Vd/kg (L/kg)</th><th>t½</th></tr></thead>
+        <tbody>
+          <tr><td>Neonates</td><td>0.4–0.6</td><td>3–11.5 hr</td></tr>
+          <tr><td>Pediatrik</td><td>0.3–0.5</td><td>3–3.5 hr</td></tr>
+          <tr><td>Dewasa</td><td>0.2–0.3</td><td>1.5–3 hr</td></tr>
+          <tr><td>Obes (&gt;30% IBW)</td><td>0.26 [IBW+0.4(TBW–IBW)]</td><td>2–3 hr</td></tr>
+          <tr><td>Cystic Fibrosis</td><td>0.35</td><td>—</td></tr>
+          <tr><td>Dewasa — Renal failure</td><td>0.2–0.3</td><td>~50 hr (36–72 hr)</td></tr>
+          <tr><td>Burn</td><td>↑ (sehingga 0.63 di ICU)</td><td>1.5 hr</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="warning-bar">⚠ Faktor yang meningkatkan Vd: ascites, burn, cirrhosis, cystic fibrosis, critically ill, pancreatitis, post-surgery.<br>Faktor yang menurunkan Vd: dehidrasi.</div>
+  </div>
+
+  <!-- Unit conversion note -->
+  <div class="section">
+    <div class="section-header" style="background:#2d3748;">🔄 NOTA KONVERSI UNIT PENTING</div>
+    <div style="padding:14px 18px;display:grid;grid-template-columns:1fr 1fr;gap:16px;">
+      <div>
+        <div style="font-size:0.82rem;font-weight:700;color:var(--navy-mid);margin-bottom:8px;">Aminoglycoside:</div>
+        <div style="font-size:0.8rem;color:var(--text);line-height:2;">
+          <strong>mg/L = mcg/mL</strong> (setara, tiada konversi diperlukan)<br>
+          Laporan lab biasanya dalam mg/L atau mcg/mL<br>
+          Sesetengah lab laporkan dalam µmol/L:<br>
+          <span style="font-family:var(--mono);color:var(--teal);">µmol/L × 0.4772 = mg/L</span> (Gentamicin)<br>
+          <span style="font-family:var(--mono);color:var(--teal);">µmol/L × 0.5853 = mg/L</span> (Amikacin)
+        </div>
+      </div>
+      <div>
+        <div style="font-size:0.82rem;font-weight:700;color:var(--navy-mid);margin-bottom:8px;">Serum Creatinine:</div>
+        <div style="font-size:0.8rem;color:var(--text);line-height:2;">
+          <span style="font-family:var(--mono);color:var(--teal);">µmol/L ÷ 88.4 = mg/dL</span><br>
+          <span style="font-family:var(--mono);color:var(--teal);">mg/dL × 88.4 = µmol/L</span><br>
+          Faktor konversi: <strong>88.4</strong><br>
+          (MW Creatinine = 113.12 g/mol × 0.001 × 1000/1.13 ≈ 88.4)
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="warning-bar">⚠ Maklumat ini adalah panduan sahaja berdasarkan CCPH 2nd Ed. Sentiasa rujuk doktor atau farmasis.</div>
+</div>
+
+
+<script>
+const v   = id => parseFloat(document.getElementById(id)?.value) || 0;
+const sv  = id => document.getElementById(id)?.value || '';
+const el  = id => document.getElementById(id);
+const fmt = (n, d=2) => (isFinite(n)&&!isNaN(n)) ? n.toFixed(d) : '—';
+const isN = n => isFinite(n)&&!isNaN(n);
+
+function switchTab(tab, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  el('tab-'+tab).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+function setResult(id, val, dec=2) {
+  const e=el(id); if(!e) return;
+  e.textContent=(isN(val))?val.toFixed(dec):'—';
+}
+function setText(id, txt) { const e=el(id); if(e) e.textContent=txt; }
+function setStatus(id, txt, cls) {
+  const e=el(id); if(!e) return;
+  e.textContent=txt; e.className='status-banner '+cls;
+}
+
+// ── SCr conversion ─────────────────────────────────────────────────
+function getScrMgdl() {
+  const raw  = v('i-scr-raw');
+  const unit = sv('i-scr-unit');
+  const convRow = el('scr-conv-row');
+  if(unit==='umol') {
+    const mgdl = raw / 88.4;
+    convRow.style.display='';
+    el('scr-conv-val').textContent = raw.toFixed(1);
+    el('scr-conv-result').textContent = mgdl.toFixed(3);
+    return mgdl;
+  }
+  convRow.style.display='none';
+  return raw;
+}
+
+// ── IBW / AdjBW / Dosing Weight ────────────────────────────────────
+// IBW (CCPH handbook version): Male 50+0.9×(H_cm–152) | Female 45.5+0.9×(H_cm–152)
+// This is equivalent to Devine: 50+2.3×(H_in–60) but handbook uses 0.9 factor
+// CCPH example: Male 175cm → 50+0.9×(175–152) = 70.7 kg
+// Dosing weight (CCPH):
+//   ABW/IBW ≤ 0.75  → ABW × 1.13
+//   ABW/IBW > 1.2   → AdjBW = IBW + 0.4×(ABW–IBW)  [obes auto-detect]
+//   else (0.75–1.2) → IBW
+function calcBW(abw, ht, sex, pop) {
+  const ibw = sex==='M'
+    ? Math.max(50  + 0.9*(ht - 152), 1)
+    : Math.max(45.5 + 0.9*(ht - 152), 1);
+  const adjbw = abw > ibw ? ibw + 0.4*(abw - ibw) : ibw;
+  const ratio = abw / ibw;
+
+  let dw, note;
+  if (ratio > 1.2) {
+    dw = adjbw;
+    note = `ABW/IBW = ${ratio.toFixed(2)} (>1.2) → OBES: AdjBW = ${ibw.toFixed(1)} + 0.4×(${abw}–${ibw.toFixed(1)}) = ${adjbw.toFixed(1)} kg`;
+  } else if (ratio <= 0.75) {
+    dw = abw * 1.13;
+    note = `ABW/IBW = ${ratio.toFixed(2)} (≤0.75) → ABW × 1.13 = ${(abw*1.13).toFixed(1)} kg`;
+  } else {
+    dw = ibw;
+    note = `ABW/IBW = ${ratio.toFixed(2)} (julat normal) → IBW = ${ibw.toFixed(1)} kg`;
+  }
+  if (pop === 'cf') { dw = abw; note = `Cystic Fibrosis → ABW = ${abw} kg`; }
+
+  return { ibw, adjbw, dw, note, ratio };
+}
+
+// ── CrCL (Cockcroft-Gault, SCr in µmol/L inline) ───────────────────
+function calcCrCL(age, bw, sex, scrUmol) {
+  // Using µmol/L formula directly: (140-age)×BW×1.04(F)/1.23(M) / SCr(µmol/L)
+  if(scrUmol <= 0) return NaN;
+  const factor = sex==='M' ? 1.23 : 1.04;
+  return (140 - age) * bw * factor / scrUmol;
+}
+
+// ── Vd/kg by population ────────────────────────────────────────────
+function getVdkg(pop) {
+  switch(pop) {
+    case 'peds':    return 0.4;
+    case 'obese':   return null; // special calc
+    case 'cf':      return 0.35;
+    case 'neonate': return 0.5;
+    default:        return 0.25; // adult midpoint
+  }
+}
+
+// ── Tab 1: Dose Initiation ─────────────────────────────────────────
+function calcInit() {
+  const drug = sv('i-drug');
+  const age  = v('i-age'), sex = sv('i-sex');
+  const ht   = v('i-ht'), abw = v('i-abw');
+  const pop  = sv('i-pop');
+  const scrUnit = sv('i-scr-unit');
+  const scrRaw  = v('i-scr-raw');
+  const scrUmol = scrUnit==='umol' ? scrRaw : scrRaw * 88.4;
+  getScrMgdl(); // trigger display
+
+  // BW
+  const bwCalc = calcBW(abw, ht, sex, pop);
+  setResult('r-ibw',   bwCalc.ibw,   1);
+  setResult('r-adjbw', bwCalc.adjbw, 1);
+  setResult('r-dw',    bwCalc.dw,    1);
+  setText('r-dw-note', bwCalc.note);
+  // Show/hide obese flag
+  const obeseFlag = el('r-obese-flag');
+  if(obeseFlag) obeseFlag.style.display = bwCalc.ratio > 1.2 ? '' : 'none';
+
+  // Vd — auto-detect obese by ratio (same as dosing weight logic)
+  let vdkg, vd;
+  const isObese = bwCalc.ratio > 1.2;
+  if (isObese) {
+    // Obes: Vd = 0.26 × [IBW + 0.4×(TBW–IBW)] = 0.26 × AdjBW
+    vdkg = 0.26;
+    vd   = 0.26 * bwCalc.adjbw;
+  } else {
+    vdkg = getVdkg(pop);
+    vd   = vdkg * bwCalc.dw;
+  }
+  setText('r-vdkg', vdkg + ' L/kg');
+  setResult('r-vd', vd, 2);
+
+  // CrCL — untuk obes, handbook guna AdjBW (bukan IBW) dalam CG
+  // Standard: guna Dosing Weight (DW) untuk dose, tapi AdjBW untuk CrCL jika obes
+  const bwForCrCL = isObese ? bwCalc.adjbw : bwCalc.dw;
+  const crcl = calcCrCL(age, bwForCrCL, sex, scrUmol);
+  setResult('r-crcl', crcl, 1);
+
+  // CL_amg (L/hr)
+  const cl = isN(crcl) ? crcl * 60 / 1000 : NaN;
+  setResult('r-cl', cl, 3);
+
+  // Ke, t½
+  const ke  = (isN(cl)&&cl>0&&vd>0) ? cl/vd : NaN;
+  const t12 = isN(ke)&&ke>0 ? 0.693/ke : NaN;
+  setResult('r-ke',  ke,  4);
+  setResult('r-t12', t12, 2);
+
+  // Target Cmax/Cmin
+  const tgtCmax = v('i-tgt-cmax');
+  const tgtCmin = v('i-tgt-cmin');
+
+  // τ = (ln Cmax - ln Cmin) / Ke → round to logical interval
+  let tau = NaN, tauRawVal = NaN;
+  if(isN(ke)&&ke>0&&tgtCmax>0&&tgtCmin>0&&tgtCmax>tgtCmin) {
+    tauRawVal = (Math.log(tgtCmax) - Math.log(tgtCmin)) / ke;
+    if(tauRawVal <= 10)      tau = 8;
+    else if(tauRawVal <= 18) tau = 12;
+    else if(tauRawVal <= 30) tau = 24;
+    else                     tau = 48;
+  }
+  setText('r-tau', isN(tau) ? tau+' hr' : '—');
+
+  // τ breakdown display
+  const tbDiv = el('tau-breakdown');
+  if(tbDiv) {
+    if(isN(ke)&&ke>0&&tgtCmax>0&&tgtCmin>0) {
+      tbDiv.style.display = '';
+      const lnCmax = Math.log(tgtCmax);
+      const lnCmin = Math.log(tgtCmin);
+      const numer  = lnCmax - lnCmin;
+      el('tb-cmax').textContent     = tgtCmax;
+      el('tb-cmin').textContent     = tgtCmin;
+      el('tb-lncmax').textContent   = lnCmax.toFixed(4);
+      el('tb-lncmin').textContent   = lnCmin.toFixed(4);
+      el('tb-ke').textContent       = ke.toFixed(4);
+      el('tb-ke2').textContent      = ke.toFixed(4);
+      el('tb-numerator').textContent= numer.toFixed(4);
+      el('tb-tauraw').textContent   = isN(tauRawVal) ? tauRawVal.toFixed(2) : '—';
+      el('tb-taurnd').textContent   = isN(tau) ? tau+' hr' : '—';
+    } else {
+      tbDiv.style.display = 'none';
+    }
+  }
+
+  // Initial dose (exact)
+  const dose = (isN(ke)&&isN(vd)&&isN(tau))
+    ? tgtCmax * vd * (1 - Math.exp(-ke*tau)) : NaN;
+  setResult('r-dose-init', dose, 0);
+
+  // Rounded to nearest 250mg (handbook rounds up to nearest 250)
+  const doseR250 = isN(dose) ? Math.ceil(dose/250)*250 : NaN;
+  setText('r-dose-250', isN(doseR250) ? doseR250+' mg' : '—');
+
+  // Expected Cmax/Cmin — show for EXACT dose
+  const expCmax = (isN(dose)&&isN(vd)&&isN(ke)&&isN(tau)&&vd>0)
+    ? dose / (vd * (1 - Math.exp(-ke*tau))) : NaN;
+  const expCmin = isN(expCmax) ? expCmax * Math.exp(-ke*tau) : NaN;
+  setResult('r-exp-cmax', expCmax, 2);
+  setResult('r-exp-cmin', expCmin, 2);
+
+  // Expected Cmax/Cmin — with rounded 250mg dose
+  const expCmax250 = (isN(doseR250)&&isN(vd)&&isN(ke)&&isN(tau)&&vd>0)
+    ? doseR250 / (vd * (1 - Math.exp(-ke*tau))) : NaN;
+  const expCmin250 = isN(expCmax250) ? expCmax250 * Math.exp(-ke*tau) : NaN;
+  setResult('r-exp-cmax-250', expCmax250, 2);
+  setResult('r-exp-cmin-250', expCmin250, 2);
+
+  // Status
+  updateTargetHints(drug);
+  const sb = el('init-status');
+  if(!isN(expCmax)||!isN(expCmin)){
+    setStatus('init-status','Isi nilai di atas untuk melihat interpretasi','st-empty');
+    return;
+  }
+  const { peakOk, troughOk, msg } = checkTargets(drug, 'mdd', expCmax, expCmin);
+  setStatus('init-status', msg, peakOk&&troughOk?'st-ok':(!troughOk?'st-high':'st-low'));
+}
+
+// ── Target concentration table (from handbook image) ───────────────
+const TARGETS = {
+  // gt = gent trough limit, gpLo/gpHi = gent peak range
+  // at = amik trough limit, apLo/apHi = amik peak range
+  // For τ formula: use peak_high and trough_limit (the "<X" value = X)
+  neonate: { gt:1,  gpLo:5,  gpHi:12, at:5,  apLo:20, apHi:30,
+    note:'Neonates: Gent trough <1, peak 5–12 | Amik trough <5, peak 20–30 mg/L' },
+  mdd:     { gt:2,  gpLo:5,  gpHi:10, at:10, apLo:20, apHi:30,
+    note:'MDD: Gent trough <2, peak 5–10 | Amik trough <10, peak 20–30 mg/L' },
+  sdd:     { gt:2,  gpLo:10, gpHi:30, at:2,  apLo:40, apHi:60,
+    note:'SDD: Gent trough <1 (monitor), peak 10–30* | Amik trough <1, peak ~60* | τ dikira guna Cmin=2 [CCPH example]' },
+  synergy: { gt:1,  gpLo:3,  gpHi:5,  at:null, apLo:null, apHi:null,
+    note:'Synergy: Gent trough <1, peak 3–5 mg/L | Amikacin N/A' },
+  hd:      { gt:2,  gpLo:null,gpHi:null,at:10,apLo:null,apHi:null,
+    note:'Haemodialysis: Gent trough <2, peak not necessary | Amik trough <10 mg/L' },
+};
+
+function applyTargets() {
+  const mode   = sv('i-mode');
+  const drug   = sv('i-drug');
+  const t      = TARGETS[mode];
+  if (!t) return;
+  const isGent = drug === 'gent';
+
+  let cmaxVal, cminVal;
+  if (isGent) {
+    // Cmax = peak high (use upper end of range for τ calculation, matching handbook)
+    cmaxVal = t.gpHi || t.gpLo || 8;
+    // Cmin = trough limit (the "<X" threshold = X, used directly in τ formula)
+    cminVal = t.gt || 1;
+  } else {
+    cmaxVal = t.apHi || t.apLo || 30;
+    cminVal = t.at || 1;
+  }
+
+  el('i-tgt-cmax').value = cmaxVal;
+  el('i-tgt-cmin').value = cminVal;
+  el('mode-target-hint').textContent =
+    `📊 ${t.note}  |  τ formula = (ln${cmaxVal} − ln${cminVal}) ÷ Ke`;
+  updateTargetHints(drug);
+  calcInit();
+}
+
+function updateTargetHints(drug) {
+  const isGent = drug==='gent';
+  el('tgt-cmax-hint').textContent = isGent
+    ? 'MDD: 5–10 | SDD: 10–30 | Synergy: 3–5 mg/L'
+    : 'MDD: 20–30 | SDD: ~60 mg/L (10×MIC)';
+  el('tgt-cmin-hint').textContent = isGent
+    ? 'MDD: <2 | SDD: <1 mg/L'
+    : 'MDD: <10 | SDD: <1 mg/L';
+}
+
+function checkTargets(drug, mode, cmax, cmin) {
+  const isGent = drug==='gent';
+  let peakLo, peakHi, troughMax;
+  if(mode==='mdd') {
+    peakLo = isGent?5:20; peakHi = isGent?10:30; troughMax = isGent?2:10;
+  } else {
+    peakLo = isGent?10:40; peakHi = isGent?30:60; troughMax = 1;
+  }
+  const peakOk   = isN(cmax) && cmax>=peakLo && cmax<=peakHi;
+  const troughOk = isN(cmin) && cmin<troughMax;
+  const n = isGent?'Gentamicin':'Amikacin';
+  let msg = `${n}: Cmax=${fmt(cmax,2)} mg/L (sasaran ${peakLo}–${peakHi}), Cmin=${fmt(cmin,2)} mg/L (sasaran <${troughMax})  →  `;
+  if(peakOk&&troughOk) msg+='✓ DALAM SASARAN';
+  else if(!peakOk&&cmax<peakLo) msg+='⚠ Peak RENDAH — tingkat dos';
+  else if(!peakOk&&cmax>peakHi) msg+='⚠ Peak TINGGI — risiko toksisiti';
+  else if(!troughOk) msg+='✗ Trough TINGGI — risiko nefrotoksisiti';
+  return { peakOk, troughOk, msg };
+}
+
+// ── Tab 2: Dose Adjustment ─────────────────────────────────────────
+// Neonatal τ table (CCPH): based on Cpre/trough at 24h
+const NEONATE_TAU_TABLE = [
+  { maxCpre: 1.0,  tau: 24, t12: '~8 hr',  label: '≤1.0 → τ = 24 jam' },
+  { maxCpre: 2.3,  tau: 36, t12: '~12 hr', label: '1.1–2.3 → τ = 36 jam' },
+  { maxCpre: 3.2,  tau: 48, t12: '~15 hr', label: '2.4–3.2 → τ = 48 jam' },
+  { maxCpre: Infinity, tau: null, t12: '—', label: '≥3.3 → Ukur semula selepas 24 jam' },
+];
+
+function getNeonateTau(cpre) {
+  for (const row of NEONATE_TAU_TABLE) {
+    if (cpre <= row.maxCpre) return row;
+  }
+  return NEONATE_TAU_TABLE[3];
+}
+
+function calcAdj() {
+  const drug    = sv('a-drug');
+  const dose    = v('a-dose');
+  const tau     = v('a-tau');
+  const cpost   = v('a-cpost');
+  const cpre    = v('a-cpre');
+  const t2t1    = v('a-t2t1');
+  const tpost   = v('a-tpost');
+  const vdManual= parseFloat(el('a-vd')?.value) || NaN; // NaN if empty
+  const tgtCmax = v('a-tgt-cmax');
+  const tgtCmin = v('a-tgt-cmin');
+  const mode    = sv('a-mode'); // 'std' or 'neonate'
+  const isNeonate = mode === 'neonate';
+
+  // Show/hide neonatal table
+  const neoSec = el('neonate-tau-section');
+  if (neoSec) neoSec.style.display = isNeonate ? '' : 'none';
+
+  // Ke from two concentrations
+  const ke  = (cpost>0 && cpre>0 && tau>t2t1)
+    ? (Math.log(cpost) - Math.log(cpre)) / (tau - t2t1) : NaN;
+  const t12 = isN(ke) && ke>0 ? 0.693/ke : NaN;
+  setResult('a-ke',  ke,  4);
+  setResult('a-t12', t12, 2);
+
+  // Cmax & Cmin from measured levels
+  const cmax = (isN(ke) && cpost>0) ? cpost * Math.exp(ke * tpost) : NaN;
+  const cmin = (isN(ke) && isN(cmax)) ? cmax * Math.exp(-ke * tau) : NaN;
+  setResult('a-cmax', cmax, 2);
+  setResult('a-cmin', cmin, 2);
+
+  // Vd — auto from Cmax & dose, or manual override
+  let vd = NaN;
+  if (!isNaN(vdManual) && vdManual > 0) {
+    vd = vdManual; // manual override
+    setText('a-vd-calc', vdManual.toFixed(2)+' (manual)');
+  } else if (isN(ke) && isN(cmax) && cmax>0 && tau>0) {
+    // Vd = Dose / [Cmax × (1 − e^(−Ke×τ))]
+    vd = dose / (cmax * (1 - Math.exp(-ke * tau)));
+    setResult('a-vd-calc', vd, 2);
+  } else {
+    setText('a-vd-calc', '—');
+  }
+
+  // New τ — neonates vs standard
+  let newTau = NaN;
+  if (isNeonate) {
+    // Use Cpre (trough at ~24h) to look up τ from table
+    if (cpre > 0) {
+      const row = getNeonateTau(cpre);
+      newTau = row.tau || NaN;
+      // Update table highlights
+      NEONATE_TAU_TABLE.forEach((r, i) => {
+        const rowEl = el(`neonate-row-${i}`);
+        const matchEl = el(`neonate-match-${i}`);
+        if (rowEl && matchEl) {
+          const isMatch = cpre <= r.maxCpre &&
+            (i===0 || cpre > NEONATE_TAU_TABLE[i-1].maxCpre);
+          rowEl.style.fontWeight = isMatch ? '700' : '';
+          rowEl.style.outline    = isMatch ? '3px solid #2f6eb5' : '';
+          matchEl.textContent    = isMatch ? '◄ Pesakit ini' : '';
+          matchEl.style.color    = '#2f6eb5';
+          matchEl.style.fontWeight = '700';
+        }
+      });
+      // Verdict
+      const neoVerdict = el('neonate-tau-verdict');
+      if (neoVerdict) {
+        if (cpre <= 1.0) {
+          neoVerdict.textContent = `✓ Cpre = ${cpre} mg/L (≤1) → Interval cadangan: 24 jam`;
+          neoVerdict.className = 'status-banner st-ok';
+        } else if (cpre <= 2.3) {
+          neoVerdict.textContent = `⚠ Cpre = ${cpre} mg/L (1.1–2.3) → Clearance lambat — interval cadangan: 36 jam`;
+          neoVerdict.className = 'status-banner st-high';
+        } else if (cpre <= 3.2) {
+          neoVerdict.textContent = `⚠ Cpre = ${cpre} mg/L (2.4–3.2) → Clearance sangat lambat — interval cadangan: 48 jam`;
+          neoVerdict.className = 'status-banner st-tox';
+        } else {
+          neoVerdict.textContent = `✗ Cpre = ${cpre} mg/L (≥3.3) → Tahan dos. Ukur semula kepekatan selepas 24 jam.`;
+          neoVerdict.className = 'status-banner st-low';
+        }
+      }
+    }
+    const tDesc = el('a-tau-desc');
+    if (tDesc) tDesc.textContent = 'Neonates: ditentukan dari jadual Cpre@24h [CCPH]';
+  } else {
+    // Standard: τ from ln formula
+    if(isN(ke)&&ke>0&&tgtCmax>0&&tgtCmin>0&&tgtCmax>tgtCmin) {
+      const tauRaw = (Math.log(tgtCmax) - Math.log(tgtCmin)) / ke;
+      if(tauRaw<=10) newTau=8;
+      else if(tauRaw<=18) newTau=12;
+      else if(tauRaw<=30) newTau=24;
+      else newTau=48;
+    }
+    const tDesc = el('a-tau-desc');
+    if (tDesc) tDesc.textContent = 'Standard: (ln Cmax − ln Cmin) ÷ Ke [dibundarkan ke 8/12/24/48h]';
+  }
+  setText('a-new-tau', isN(newTau) ? newTau+' hr' : (cpre>0&&isNeonate&&cpre>=3.3?'Tahan dos':'—'));
+
+  // New dose = Cmax_target × Vd × (1 − e^(−Ke×τ_new))
+  const newDose = (isN(ke) && isN(vd) && vd>0 && isN(newTau) && tgtCmax>0)
+    ? tgtCmax * vd * (1 - Math.exp(-ke * newTau)) : NaN;
+  setResult('a-new-dose', newDose, 0);
+
+  // Expected Cmax/Cmin with new dose
+  const expCmax = (isN(newDose) && isN(vd) && vd>0 && isN(ke) && isN(newTau))
+    ? newDose / (vd * (1 - Math.exp(-ke * newTau))) : NaN;
+  const expCmin = isN(expCmax) ? expCmax * Math.exp(-ke * newTau) : NaN;
+  setResult('a-exp-cmax', expCmax, 2);
+  setResult('a-exp-cmin', expCmin, 2);
+
+  el('a-tgt-hint').textContent = sv('a-drug')==='gent'
+    ? 'Neonates: 5–12 | MDD: 5–10 | SDD: 10–30 | Synergy: 3–5 mg/L'
+    : 'Neonates: 20–30 | MDD: 20–30 | SDD: ~60 mg/L';
+
+  // Status
+  if(!isN(cmax)) { setStatus('adj-cmax-status','Isi nilai untuk interpretasi','st-empty'); return; }
+  const modeStr = isNeonate ? 'neonate' : 'mdd';
+  const { peakOk, troughOk, msg } = checkTargets(drug, modeStr, cmax, cmin);
+  setStatus('adj-cmax-status', '📊 Bacaan semasa: '+msg, peakOk&&troughOk?'st-ok':(!troughOk?'st-high':'st-low'));
+  if(isN(expCmax)) {
+    const r2 = checkTargets(drug, modeStr, expCmax, expCmin);
+    setStatus('adj-cmin-status', '🎯 Dos baru: '+r2.msg, r2.peakOk&&r2.troughOk?'st-ok':(!r2.troughOk?'st-high':'st-low'));
+  }
+
+  // Update recommendation card
+  calcRecommendation();
+}
+
+// ── Dose Recommendation with datetime ─────────────────────────────
+function fmtDT(dt) {
+  // Format: "Isnin, 4 Jan 2019, 12:00 am"
+  return dt.toLocaleString('ms-MY', {
+    weekday:'long', day:'numeric', month:'short', year:'numeric',
+    hour:'2-digit', minute:'2-digit', hour12:true
+  });
+}
+
+function addHours(dt, hours) {
+  return new Date(dt.getTime() + hours * 3600000);
+}
+
+function calcRecommendation() {
+  const dateVal = el('rec-date')?.value;
+  const timeVal = el('rec-time')?.value || '12:00';
+  const recOut  = el('rec-output');
+  if (!recOut) return;
+
+  // Get values from calcAdj results
+  const newDose  = parseFloat(el('a-new-dose')?.textContent) || 0;
+  const newTauEl = el('a-new-tau')?.textContent || '';
+  const newTau   = parseFloat(newTauEl) || NaN;
+  const expCmax  = parseFloat(el('a-exp-cmax')?.textContent) || 0;
+  const expCmin  = parseFloat(el('a-exp-cmin')?.textContent) || 0;
+  const drug     = sv('a-drug') === 'gent' ? 'Gentamicin' : 'Amikacin';
+
+  // Update dose display
+  setText('rec-dose-display', newDose > 0 ? newDose.toFixed(0)+' mg' : '—');
+
+  if (!dateVal || !isFinite(newTau) || newDose <= 0) {
+    recOut.style.display = 'none';
+    return;
+  }
+
+  // Parse last dose datetime
+  const lastDoseDT = new Date(`${dateVal}T${timeVal}:00`);
+  if (isNaN(lastDoseDT.getTime())) { recOut.style.display = 'none'; return; }
+
+  // Calculate next dose datetime
+  const nextDoseDT  = addHours(lastDoseDT, newTau);
+  // TDM sampling: pre = 30min before next dose, post = 30min after infusion (assume 30min infusion)
+  const preSampleDT  = addHours(nextDoseDT, -0.5);
+  const postSampleDT = addHours(nextDoseDT,  1.0); // 30min infusion + 30min post
+
+  setText('rec-next-dt',      fmtDT(nextDoseDT));
+  setText('rec-interval-label', `${newTau} jam selepas dos terkini`);
+  setText('rec-dose-label',   `IV ${drug} ${newDose.toFixed(0)} mg`);
+  setText('rec-targets-label', `Jangkaan: Cmax ${expCmax.toFixed(1)} mg/L, Cmin ${expCmin.toFixed(2)} mg/L`);
+  setText('rec-pre-dt',   fmtDT(preSampleDT));
+  setText('rec-post-dt',  fmtDT(postSampleDT));
+
+  // Summary text
+  const sumEl = el('rec-summary');
+  if (sumEl) {
+    sumEl.textContent =
+      `Cadangan: IV ${drug} ${newDose.toFixed(0)} mg setiap ${newTau} jam bermula ` +
+      `${fmtDT(nextDoseDT)}, bagi mencapai Cmax ~${expCmax.toFixed(1)} mg/L dan Cmin ~${expCmin.toFixed(2)} mg/L. ` +
+      `Semak pre-dos pada ${fmtDT(preSampleDT)} dan post-dos pada ${fmtDT(postSampleDT)} ` +
+      `untuk pemantauan terapeutik jika merancang untuk meneruskan rawatan ${drug}.`;
+  }
+
+  recOut.style.display = '';
+}
+
+
+function calcSDD() {
+  const drug  = sv('s-drug');
+  const dose  = v('s-dose');
+  const tau   = v('s-tau');
+  const c2    = v('s-c2');
+  const c6    = v('s-c6');
+  const tp    = v('s-tprime'); // time from Cmax to C2 (usually 1hr)
+  const mic   = v('s-mic') || 1;
+
+  // Ke from C2 and C6 (sampled at t2=2hr, t6=6hr post-infusion start)
+  const ke  = (c2>0&&c6>0) ? (Math.log(c2) - Math.log(c6)) / (6-2) : NaN;
+  const t12 = isN(ke)&&ke>0 ? 0.693/ke : NaN;
+  setResult('s-ke',  ke,  4);
+  setResult('s-t12', t12, 2);
+
+  // Cmax: extrapolate back from C2 (assumed peak at 1hr after start)
+  // t' = time from Cmax to C2 = 2hr - 1hr = 1hr (but user can adjust)
+  const cmax = (isN(ke)&&c2>0) ? c2 * Math.exp(ke * tp) : NaN;
+  const cmin = (isN(ke)&&isN(cmax)) ? cmax * Math.exp(-ke * tau) : NaN;
+  setResult('s-cmax', cmax, 2);
+  setResult('s-cmin', cmin, 2);
+
+  // Vd from dose, Cmax, Ke, tau
+  const vd = (isN(cmax)&&isN(ke)&&cmax>0) ? dose / (cmax*(1-Math.exp(-ke*tau))) : NaN;
+  setResult('s-vd', vd, 2);
+
+  // tMIC and DFP
+  const tmic = (isN(ke)&&isN(cmax)&&cmax>0&&mic>0&&ke>0)
+    ? (Math.log(cmax) - Math.log(mic)) / ke : NaN;
+  const tmax = 1; // assume Cmax at 1hr
+  const dfp  = isN(tmic) ? tau - tmax - tmic : NaN;
+  setResult('s-tmic', tmic, 2);
+  setResult('s-dfp',  dfp,  2);
+
+  // Cmax/MIC
+  const cmaxMic = (isN(cmax)&&mic>0) ? cmax/mic : NaN;
+  setResult('s-cmax-mic', cmaxMic, 1);
+
+  // DFP gauge (0–12hr range)
+  const dfpPct = isN(dfp) ? Math.min(Math.max(dfp/12*100,0),100) : 0;
+  el('s-dfp-fill').style.width = dfpPct+'%';
+  el('s-dfp-fill').style.background = isN(dfp)
+    ? (dfp>=2&&dfp<=8 ? 'var(--green)' : dfp<2?'var(--amber)':'var(--red)') : '#ccc';
+
+  // DFP status
+  if(!isN(dfp)) {
+    setStatus('s-dfp-status','Isi nilai untuk kiraan DFP','st-empty');
+  } else if(dfp>=2&&dfp<=8) {
+    setStatus('s-dfp-status',`✓ DFP = ${dfp.toFixed(1)} jam — DALAM SASARAN (2–8 jam)`,'st-ok');
+  } else if(dfp<2) {
+    setStatus('s-dfp-status',`⚠ DFP = ${dfp.toFixed(1)} jam — TERLALU PENDEK (<2 jam). Kurangkan dos atau panjangkan interval.`,'st-high');
+  } else {
+    setStatus('s-dfp-status',`⚠ DFP = ${dfp.toFixed(1)} jam — TERLALU PANJANG (>8 jam). Tingkatkan dos atau kurangkan interval.`,'st-tox');
+  }
+
+  // Cmax/Cmin status
+  if(isN(cmax)&&isN(cmin)) {
+    const { peakOk, troughOk, msg } = checkTargets(drug, 'sdd', cmax, cmin);
+    setStatus('s-cmax-status', msg, peakOk&&troughOk?'st-ok':(!troughOk?'st-high':'st-low'));
+    setStatus('s-cmin-status', isN(cmaxMic)&&cmaxMic>=10
+      ? `✓ Cmax/MIC = ${cmaxMic.toFixed(1)} ≥ 10 — Sasaran tercapai`
+      : `⚠ Cmax/MIC = ${fmt(cmaxMic,1)} — Sasaran <10 tidak tercapai`,
+      isN(cmaxMic)&&cmaxMic>=10?'st-ok':'st-low');
+  }
+  // Trigger new dose simulation update
+  calcSDDNew();
+}
+
+// ── SDD New Dose Simulation ────────────────────────────────────────
+function calcSDDNew() {
+  const ke   = parseFloat(el('s-ke')?.textContent)  || NaN;
+  const vd   = parseFloat(el('s-vd')?.textContent)  || NaN;
+  const mic  = v('s-mic') || 1;
+  const drug = sv('s-drug')==='gent' ? 'Gentamicin' : 'Amikacin';
+  const newDose = v('sn-dose');
+  const newTau  = v('sn-tau');
+  const stepsDiv = el('sn-steps');
+
+  if(!isN(ke)||!isN(vd)||ke<=0||vd<=0||newDose<=0||newTau<=0){
+    if(stepsDiv) stepsDiv.style.display='none';
+    ['sn-r-cmax','sn-r-cmin','sn-r-tmic','sn-r-dfp','sn-r-cmax-mic'].forEach(id=>setText(id,'—'));
+    setStatus('sn-dfp-verdict','Lengkapkan kiraan SDD di atas dulu.','st-empty');
+    el('sn-recommendation').style.display='none';
+    el('sn-datetime-output').style.display='none';
+    return;
+  }
+
+  // Calculations — matching handbook step-by-step
+  const expCmax = newDose / (vd * (1 - Math.exp(-ke * newTau)));
+  const expCmin = expCmax * Math.exp(-ke * newTau);
+  const tmic    = expCmax > mic ? (Math.log(expCmax) - Math.log(mic)) / ke : NaN;
+  const tmax    = 1; // assume Cmax at 1hr after start
+  const dfp     = isN(tmic) ? newTau - tmax - tmic : NaN;
+  const cmaxMic = expCmax / mic;
+
+  // Step-by-step breakdown
+  if(stepsDiv) {
+    stepsDiv.style.display = '';
+    el('sn-dose-v').textContent    = newDose;
+    el('sn-vd-v').textContent      = vd.toFixed(2);
+    el('sn-ke-v').textContent      = ke.toFixed(3);
+    el('sn-ke-v2').textContent     = ke.toFixed(3);
+    el('sn-ke-v3').textContent     = ke.toFixed(3);
+    el('sn-tau-v').textContent     = newTau;
+    el('sn-tau-v2').textContent    = newTau;
+    el('sn-tau-v3').textContent    = newTau;
+    el('sn-exp-cmax').textContent  = expCmax.toFixed(2);
+    el('sn-exp-cmax2').textContent = expCmax.toFixed(2);
+    el('sn-exp-cmin').textContent  = expCmin.toFixed(2);
+    el('sn-cmax-mic1').textContent = expCmax.toFixed(2);
+    el('sn-mic-v').textContent     = mic;
+    el('sn-tmic').textContent      = isN(tmic) ? tmic.toFixed(1) : '—';
+    el('sn-tmic2').textContent     = isN(tmic) ? tmic.toFixed(1) : '—';
+    el('sn-dfp').textContent       = isN(dfp)  ? dfp.toFixed(1)  : '—';
+  }
+
+  // Result cards
+  setText('sn-r-cmax',     expCmax.toFixed(2));
+  setText('sn-r-cmin',     expCmin.toFixed(2));
+  setText('sn-r-tmic',     isN(tmic) ? tmic.toFixed(1) : '—');
+  setText('sn-r-dfp',      isN(dfp)  ? dfp.toFixed(1)  : '—');
+  setText('sn-r-cmax-mic', cmaxMic.toFixed(1));
+  setText('sn-mic-status', cmaxMic>=10 ? '≥10 ✓ Sasaran tercapai' : '<10 ✗ Tidak mencukupi');
+
+  // DFP card colour
+  const dfpCard  = el('sn-dfp-card');
+  const dfpLabel = el('sn-dfp-card-label');
+  const dfpVal   = el('sn-r-dfp');
+  if(dfpCard && isN(dfp)) {
+    const ok = dfp>=2 && dfp<=8;
+    const toolong = dfp>8;
+    dfpCard.style.background = ok ? 'var(--green-lt)' : toolong ? 'var(--orange-lt)' : 'var(--amber-lt)';
+    dfpLabel.style.color = dfpVal.style.color = ok ? 'var(--green)' : toolong ? 'var(--orange)' : 'var(--amber)';
+  }
+
+  // DFP verdict
+  if(isN(dfp)) {
+    if(dfp>=2 && dfp<=8) {
+      setStatus('sn-dfp-verdict',`✓ DFP = ${dfp.toFixed(1)} jam — DALAM SASARAN. Dos ${newDose}mg sesuai.`,'st-ok');
+    } else if(dfp < 2) {
+      setStatus('sn-dfp-verdict',`⚠ DFP = ${dfp.toFixed(1)} jam — TERLALU PENDEK (<2 jam). Kurangkan dos atau panjangkan interval.`,'st-high');
+    } else {
+      setStatus('sn-dfp-verdict',`⚠ DFP = ${dfp.toFixed(1)} jam — MASIH TERLALU PANJANG (>8 jam). Tingkatkan dos lagi atau kurangkan interval.`,'st-tox');
+    }
+  } else {
+    setStatus('sn-dfp-verdict','—','st-empty');
+  }
+
+  // Recommendation text
+  const recDiv = el('sn-recommendation');
+  if(recDiv) {
+    recDiv.innerHTML =
+      `<strong>Cadangan:</strong> IV ${drug} <strong>${newDose} mg OD (q${newTau}h)</strong> ` +
+      `bagi mencapai Expected Cmax <strong>${expCmax.toFixed(2)} mg/L</strong> dan ` +
+      `Cmin <strong>${expCmin.toFixed(2)} mg/L</strong>. ` +
+      `DFP = <strong>${isN(dfp)?dfp.toFixed(1):'?'} jam</strong>, ` +
+      `Cmax/MIC = <strong>${cmaxMic.toFixed(1)}</strong>. ` +
+      (dfp>=2&&dfp<=8 ? 'DFP dalam sasaran — dos ini sesuai.' :
+       dfp>8 ? 'DFP masih melebihi 8 jam — pertimbangkan tingkatkan dos.' :
+       'DFP terlalu pendek — pertimbangkan kurangkan dos.') +
+      (isN(tmic) ? ` Semak post 2 jam (C2) dan post 6 jam (C6) untuk pemantauan terapeutik.` : '');
+    recDiv.style.display = '';
+  }
+
+  // Datetime: next dose, C2 and C6 sampling
+  const dateVal = el('sn-date')?.value;
+  const timeVal = el('sn-time')?.value || '12:00';
+  const dtOut   = el('sn-datetime-output');
+  if(dateVal && dtOut) {
+    const lastDT  = new Date(`${dateVal}T${timeVal}:00`);
+    const nextDT  = new Date(lastDT.getTime() + newTau * 3600000);
+    const c2DT    = new Date(nextDT.getTime() + 2 * 3600000);
+    const c6DT    = new Date(nextDT.getTime() + 6 * 3600000);
+    dtOut.style.display = '';
+    dtOut.innerHTML =
+      `📅 <strong>Dos seterusnya:</strong> ${fmtDT(nextDT)}<br>` +
+      `🔬 <strong>Semak C2 (post 2 jam):</strong> ${fmtDT(c2DT)} &nbsp;|&nbsp; ` +
+      `<strong>C6 (post 6 jam):</strong> ${fmtDT(c6DT)}`;
+  } else if(dtOut) {
+    dtOut.style.display = 'none';
+  }
+}
+
+// ── Patient header ──
+function updateHeader() {
+  const nama=el('pt-nama').value||'—';
+  const ic=el('pt-ic').value||'—';
+  const ward=el('pt-ward').value||'—';
+  const tarRaw=el('pt-tarikh').value;
+  let tarikh='—';
+  if(tarRaw){ const d=new Date(tarRaw); tarikh=d.toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'}); }
+  const html=`<div style="border:2px solid #2f6eb5;border-radius:8px;padding:10px 16px;margin-bottom:12px;background:#f0f6ff;">
+    <div style="display:flex;justify-content:space-between;">
+      <div><div style="font-size:1rem;font-weight:700;color:#1f4e79;">${nama}</div>
+        <div style="font-size:0.8rem;color:#444;margin-top:3px;">No. IC / MRN: <strong>${ic}</strong> &nbsp;|&nbsp; Ward: <strong>${ward}</strong></div></div>
+      <div style="text-align:right;font-size:0.78rem;color:#555;">
+        <div>Tarikh: <strong>${tarikh}</strong></div>
+        <div style="font-size:0.7rem;color:#888;margin-top:2px;">Gentamicin / Amikacin TDM Calculator · CCPH 2nd Ed</div></div>
+    </div></div>`;
+  ['ph-init','ph-adj','ph-sdd','ph-guide'].forEach(id=>{ const e=el(id); if(e) e.innerHTML=html; });
+}
+
+// ── PDF Export ──
+function exportPDF() {
+  updateHeader();
+  const btn=el('pdf-btn'),lbl=el('pdf-label');
+  btn.disabled=true; lbl.textContent='⏳ Menjana...';
+  try {
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const PW=210,PH=297,M=14,CW=PW-M*2; let y=M,pageNum=1;
+    const C={navy:[31,78,121],blue:[47,110,181],teal:[31,92,78],green:[55,86,35],
+             greenLt:[226,239,218],amber:[125,90,0],amberLt:[255,243,205],
+             red:[192,0,0],redLt:[255,220,225],grey:[242,242,242],greyDk:[89,89,89],
+             white:[255,255,255],black:[26,26,26],rowAlt:[248,251,255],tealLt:[232,244,240]};
+    const nama=el('pt-nama').value.trim()||'—',ic=el('pt-ic').value.trim()||'—';
+    const ward=el('pt-ward').value.trim()||'—',tarRaw=el('pt-tarikh').value;
+    let tarikh='—';
+    if(tarRaw){const d=new Date(tarRaw);tarikh=d.toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'});}
+    const printed=new Date().toLocaleString('ms-MY');
+
+    function footer(){pdf.setDrawColor(200,200,200);pdf.line(M,PH-12,PW-M,PH-12);
+      pdf.setFontSize(6.5);pdf.setFont('helvetica','italic');pdf.setTextColor(...C.greyDk);
+      pdf.text('Gentamicin/Amikacin TDM — CCPH 2nd Ed. Panduan sahaja. mg/L = mcg/mL.',M,PH-8);
+      pdf.text(`Dicetak: ${printed}`,PW-M,PH-8,{align:'right'});}
+    function pageHdr(){pdf.setFillColor(...C.navy);pdf.rect(0,0,PW,12,'F');
+      pdf.setTextColor(...C.white);pdf.setFontSize(9);pdf.setFont('helvetica','bold');
+      pdf.text('GENTAMICIN / AMIKACIN — TDM CALCULATOR',M,8);
+      pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.text(`Halaman ${pageNum}`,PW-M,8,{align:'right'});y=16;}
+    function newPage(){footer();pdf.addPage();pageNum++;pageHdr();}
+    function chk(n=10){if(y+n>PH-16) newPage();}
+    function sHdr(t,c=C.navy){chk(12);pdf.setFillColor(...c);pdf.rect(M,y,CW,7,'F');
+      pdf.setTextColor(...C.white);pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
+      pdf.text(t.toUpperCase(),M+3,y+4.8);y+=9;}
+    function row(lbl,val,unit='',fill=C.greenLt,fg=C.green,hl=false){
+      chk(7);const rH=6.5;
+      if(hl){pdf.setFillColor(...C.navy);pdf.rect(M,y,CW,rH,'F');}
+      pdf.setTextColor(...(hl?C.white:C.black));pdf.setFontSize(8);pdf.setFont('helvetica',hl?'bold':'normal');
+      pdf.text(lbl,M+3,y+4.2);
+      const vx=M+115,vw=42;
+      if(!hl){pdf.setFillColor(...fill);pdf.rect(vx,y+0.8,vw,rH-1.6,'F');pdf.setDrawColor(180,200,180);pdf.rect(vx,y+0.8,vw,rH-1.6);}
+      pdf.setTextColor(...(hl?C.white:fg));pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);
+      pdf.text(String(val),vx+vw/2,y+4.2,{align:'center'});
+      if(unit){pdf.setTextColor(...C.greyDk);pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.text(unit,vx+vw+3,y+4.2);}
+      pdf.setDrawColor(230,235,240);pdf.line(M,y+rH,M+CW,y+rH);y+=rH;}
+
+    pageHdr();
+    // Patient box
+    pdf.setFillColor(240,246,255);pdf.rect(M,y,CW,18,'F');
+    pdf.setDrawColor(...C.blue);pdf.setLineWidth(0.5);pdf.rect(M,y,CW,18);pdf.setLineWidth(0.2);
+    pdf.setFontSize(11);pdf.setFont('helvetica','bold');pdf.setTextColor(...C.navy);pdf.text(nama,M+5,y+7);
+    pdf.setFontSize(8);pdf.setFont('helvetica','normal');pdf.setTextColor(...C.black);
+    pdf.text(`No. IC/MRN: ${ic}`,M+5,y+13);pdf.text(`Ward: ${ward}`,M+5,y+17);
+    pdf.setFont('helvetica','bold');pdf.text(`Tarikh: ${tarikh}`,PW-M-5,y+13,{align:'right'});
+    pdf.setFont('helvetica','normal');pdf.setTextColor(...C.greyDk);
+    pdf.text('Gentamicin/Amikacin TDM — CCPH 2nd Ed',PW-M-5,y+17,{align:'right'});y+=22;
+
+    const drug=sv('i-drug')==='gent'?'Gentamicin':'Amikacin';
+    sHdr(`Dose Initiation (Population PK) — ${drug}`,C.blue);
+    row('IBW',el('r-ibw').textContent,'kg');
+    row('Dosing Weight',el('r-dw').textContent,'kg',C.tealLt,C.teal);
+    row('Vd',el('r-vd').textContent,'L');
+    row('CrCL',el('r-crcl').textContent,'mL/min',C.tealLt,C.teal);
+    row('CL_amg',el('r-cl').textContent,'L/hr');
+    row('Ke',el('r-ke').textContent,'hr⁻¹');
+    row('t½',el('r-t12').textContent,'hr');
+    row('Dosing Interval τ',el('r-tau').textContent,'',C.tealLt,C.teal);
+    row('Initial Dose',el('r-dose-init').textContent,'mg',C.greenLt,C.green,true);
+    row('Expected Cmax',el('r-exp-cmax').textContent,'mg/L');
+    row('Expected Cmin',el('r-exp-cmin').textContent,'mg/L');
+    y+=4;
+
+    // Status
+    const stEl=el('init-status');
+    if(stEl&&stEl.textContent!=='Isi nilai di atas untuk melihat interpretasi'){
+      chk(12);
+      const isOk=stEl.className.includes('st-ok');
+      pdf.setFillColor(...(isOk?C.greenLt:C.amberLt));
+      pdf.rect(M,y,CW,9,'F'); pdf.setDrawColor(...(isOk?C.green:C.amber));
+      pdf.setLineWidth(0.5);pdf.rect(M,y,CW,9);pdf.setLineWidth(0.2);
+      pdf.setTextColor(...(isOk?C.green:C.amber));pdf.setFontSize(8);pdf.setFont('helvetica','bold');
+      const stxt=stEl.textContent.substring(0,90);
+      pdf.text(stxt,PW/2,y+6,{align:'center'});y+=12;
+    }
+
+    newPage();
+    pdf.setFillColor(240,246,255);pdf.rect(M,y,CW,10,'F');
+    pdf.setDrawColor(...C.blue);pdf.setLineWidth(0.5);pdf.rect(M,y,CW,10);pdf.setLineWidth(0.2);
+    pdf.setFontSize(8);pdf.setFont('helvetica','bold');pdf.setTextColor(...C.navy);
+    pdf.text(`${nama} | IC/MRN: ${ic} | Ward: ${ward} | Tarikh: ${tarikh}`,M+5,y+6.5);y+=14;
+
+    sHdr(`Dose Adjustment (Patient PK) — ${sv('a-drug')==='gent'?'Gentamicin':'Amikacin'}`,C.teal);
+    row('Ke',el('a-ke').textContent,'hr⁻¹');row('t½',el('a-t12').textContent,'hr');
+    row('Cmax semasa',el('a-cmax').textContent,'mg/L',C.redLt,C.red);
+    row('Cmin semasa',el('a-cmin').textContent,'mg/L',C.tealLt,C.teal);
+    row('New τ',el('a-new-tau').textContent,'',C.tealLt,C.teal);
+    row('New Dose',el('a-new-dose').textContent,'mg',C.greenLt,C.green,true);
+    row('Expected Cmax baru',el('a-exp-cmax').textContent,'mg/L');
+    row('Expected Cmin baru',el('a-exp-cmin').textContent,'mg/L');y+=4;
+
+    sHdr(`SDD Two-Level — ${sv('s-drug')==='gent'?'Gentamicin':'Amikacin'}`,C.purple||[75,46,131]);
+    row('Ke',el('s-ke').textContent,'hr⁻¹');row('t½',el('s-t12').textContent,'hr');
+    row('Cmax',el('s-cmax').textContent,'mg/L',C.redLt,C.red);
+    row('Cmin',el('s-cmin').textContent,'mg/L',C.tealLt,C.teal);
+    row('Vd',el('s-vd').textContent,'L');
+    row('tMIC',el('s-tmic').textContent,'hr');
+    row('Drug Free Period (DFP)',el('s-dfp').textContent,'hr',C.greenLt,C.green,true);
+    row('Cmax/MIC ratio',el('s-cmax-mic').textContent,'');
+
+    footer();
+    const safeName=(nama.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20)||'Pesakit');
+    pdf.save(`AMG_TDM_${safeName}_${tarRaw||'tarikh'}.pdf`);
+  } catch(err){ console.error(err);alert('Ralat PDF: '+err.message); }
+  finally{ btn.disabled=false;lbl.textContent='📄 Export PDF'; }
+}
+
+// ── Init ──
+(function(){
+  const today=new Date().toISOString().split('T')[0];
+  el('pt-tarikh').value=today;
+  if(el('rec-date')) el('rec-date').value=today;
+  if(el('sn-date'))  el('sn-date').value=today;
+  updateHeader();
+  applyTargets();
+  calcInit();
+  calcAdj();
+  calcSDD();
+})();
+</script>
+</body>
+</html>
