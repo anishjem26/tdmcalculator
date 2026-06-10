@@ -1,0 +1,1783 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Carbamazepine TDM Calculator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+:root {
+  --navy:#1a3a5c; --navy-mid:#1f4e79; --blue:#2f6eb5; --blue-lt:#deeaf9;
+  --teal:#1f5c4e; --teal-lt:#e8f4f0; --green:#375623; --green-lt:#e2efda;
+  --purple:#4b2e83; --amber:#7d5a00; --amber-lt:#fff3cd;
+  --orange:#974706; --orange-lt:#fce4d6; --red:#c00000; --red-lt:#ffdce1;
+  --grey:#f2f2f2; --grey-dk:#595959; --linked:#ebf3fb; --white:#ffffff;
+  --border:#c8d8e8; --text:#1a1a2e;
+  --sans:'IBM Plex Sans',sans-serif; --mono:'IBM Plex Mono',monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--sans);background:#f0f4f8;color:var(--text);padding-bottom:60px;}
+
+.app-header{background:linear-gradient(135deg,#1a3a5c 0%,#0d2137 100%);color:#fff;padding:18px 32px;
+  display:flex;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(0,0,0,0.3);position:sticky;top:0;z-index:100;}
+.app-header h1{font-size:1.05rem;font-weight:600;}
+.app-header .sub{font-size:0.7rem;opacity:0.6;margin-top:2px;font-weight:300;}
+.pill{background:rgba(255,255,255,0.12);border:1px solid rgba(255,255,255,0.2);border-radius:20px;
+  padding:3px 10px;font-size:0.65rem;font-weight:600;letter-spacing:0.06em;color:#a8d4f5;text-transform:uppercase;}
+
+.legend{display:flex;align-items:center;gap:8px;flex-wrap:wrap;background:#fff;
+  border-bottom:1px solid var(--border);padding:8px 32px;font-size:0.72rem;}
+.legend-title{font-weight:600;color:var(--navy-mid);margin-right:4px;}
+.leg-item{display:flex;align-items:center;gap:5px;}
+.leg-swatch{width:14px;height:14px;border-radius:3px;border:1px solid rgba(0,0,0,0.12);}
+.leg-swatch.input{background:var(--blue-lt);} .leg-swatch.result{background:var(--green-lt);}
+.leg-swatch.linked{background:var(--linked);} .leg-swatch.fixed{background:var(--grey);}
+
+.patient-bar{background:#fff;border-bottom:2px solid var(--border);padding:10px 32px;
+  display:flex;align-items:center;gap:0;flex-wrap:wrap;}
+.pt-title{font-size:0.72rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;
+  letter-spacing:0.06em;margin-right:20px;white-space:nowrap;}
+.pt-fields{display:flex;gap:12px;flex-wrap:wrap;flex:1;align-items:center;}
+.pt-field{display:flex;align-items:center;gap:6px;}
+.pt-field label{font-size:0.72rem;font-weight:600;color:var(--grey-dk);white-space:nowrap;}
+.pt-field input[type=text],.pt-field input[type=date]{padding:5px 10px;background:#fffbe6;
+  border:1.5px solid #e0c840;border-radius:6px;font-family:var(--sans);font-size:0.8rem;font-weight:500;min-width:130px;}
+.btn-group{margin-left:auto;display:flex;gap:8px;}
+.action-btn{padding:7px 16px;color:#fff;border:none;border-radius:7px;font-family:var(--sans);
+  font-size:0.78rem;font-weight:600;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:5px;transition:background 0.2s;}
+.btn-print{background:var(--navy-mid);} .btn-pdf{background:#c0392b;}
+.action-btn:hover{opacity:0.88;} .action-btn:disabled{opacity:0.5;cursor:not-allowed;}
+
+.tabs{display:flex;background:var(--navy);padding:0 32px;overflow-x:auto;}
+.tab-btn{padding:12px 20px;border:none;background:transparent;color:rgba(255,255,255,0.55);
+  font-family:var(--sans);font-size:0.78rem;font-weight:500;cursor:pointer;white-space:nowrap;
+  border-bottom:3px solid transparent;transition:all 0.2s;}
+.tab-btn:hover{color:rgba(255,255,255,0.85);}
+.tab-btn.active{color:#fff;border-bottom-color:#5bc0f8;}
+
+.tab-content{display:none;padding:24px 32px;}
+.tab-content.active{display:block;}
+
+.section{background:#fff;border-radius:10px;box-shadow:0 2px 12px rgba(0,0,0,0.07);margin-bottom:18px;overflow:hidden;}
+.sh-navy{background:var(--navy-mid);} .sh-blue{background:var(--blue);} .sh-teal{background:var(--teal);}
+.sh-green{background:var(--green);} .sh-purple{background:var(--purple);} .sh-amber{background:var(--amber);}
+.sh-dark{background:#2d3748;} .sh-steel{background:#1f497d;} .sh-red{background:#7b1c1c;}
+.section-header{padding:10px 18px;font-size:0.78rem;font-weight:600;letter-spacing:0.04em;color:#fff;text-transform:uppercase;}
+
+.form-row{display:grid;grid-template-columns:220px 140px 70px 1fr;align-items:center;
+  gap:0;border-bottom:1px solid #eef2f7;min-height:40px;}
+.form-row:last-child{border-bottom:none;}
+.form-row .label{padding:8px 14px;font-size:0.8rem;font-weight:500;}
+.form-row .value-cell{padding:4px 8px;display:flex;align-items:center;justify-content:center;}
+.form-row .unit{padding:4px 6px;font-size:0.72rem;color:var(--grey-dk);text-align:center;}
+.form-row .desc{padding:6px 14px;font-size:0.71rem;color:#6b7a8d;font-style:italic;}
+
+input[type=number],select{width:100%;padding:6px 10px;border:1.5px solid #b8d0e8;border-radius:6px;
+  background:var(--blue-lt);color:#1a3a5c;font-family:var(--mono);font-size:0.82rem;font-weight:600;
+  text-align:center;outline:none;transition:border-color 0.15s;}
+input[type=number]:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(47,110,181,0.15);}
+
+.result-val{padding:6px 12px;background:var(--green-lt);border-radius:6px;font-family:var(--mono);
+  font-size:0.88rem;font-weight:600;color:var(--green);min-width:120px;text-align:center;border:1px solid #c3ddb0;}
+.result-val.highlight{background:var(--navy-mid);color:#fff;border-color:var(--navy-mid);font-size:1rem;}
+.result-val.teal{background:var(--teal-lt);color:var(--teal);border-color:#9ed0c8;}
+.result-val.linked{background:var(--linked);color:var(--blue);border-color:#b8d4f0;font-style:italic;}
+.result-val.grey{background:var(--grey);color:var(--grey-dk);border-color:#ccc;}
+.result-val.red{background:var(--red-lt);color:var(--red);border-color:#f0b8b8;}
+
+.status-ok{background:#e6f4e6;color:#1a5c1a;border-color:#6dbe6d;}
+.status-warn{background:var(--amber-lt);color:var(--amber);border-color:#f0c040;}
+.status-high{background:var(--orange-lt);color:var(--orange);border-color:#e8924a;}
+.status-low{background:var(--red-lt);color:var(--red);border-color:#e88888;}
+.status-empty{background:var(--grey);color:var(--grey-dk);border-color:#ccc;}
+
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.note-row{padding:7px 14px;font-size:0.71rem;color:#7a8898;font-style:italic;border-bottom:1px solid #eef2f7;background:#fbfcfe;}
+.warning-bar{padding:11px 18px;background:#fff8e6;border-left:4px solid #f0c040;font-size:0.75rem;color:#7a5a00;border-radius:0 0 10px 10px;}
+.autoinduction-bar{padding:12px 18px;background:#fff3e0;border-left:4px solid #e67e22;font-size:0.78rem;color:#7b3c00;font-weight:600;border-radius:8px;margin:0 0 16px;}
+
+/* CL slider */
+.cl-slider-wrap{padding:10px 14px 8px;border-bottom:1px solid #eef2f7;background:#fbfcfe;}
+.cl-slider-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;}
+.cl-slider-label{font-size:0.8rem;font-weight:600;color:var(--text);}
+.cl-val-display{font-family:var(--mono);font-size:0.9rem;font-weight:700;color:var(--navy-mid);
+  background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:3px 10px;min-width:70px;text-align:center;}
+.cl-range-labels{display:flex;justify-content:space-between;font-size:0.68rem;color:var(--grey-dk);margin-top:3px;}
+.cl-range-wrap{position:relative;}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;border-radius:4px;
+  background:linear-gradient(to right,var(--teal) 0%,var(--teal) var(--pct,50%),#dde5ef var(--pct,50%),#dde5ef 100%);
+  outline:none;cursor:pointer;}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;
+  background:var(--navy-mid);border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,0.25);}
+.cl-scenarios{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:8px;}
+.cl-sc-btn{padding:5px 4px;border:1.5px solid var(--border);border-radius:6px;background:var(--grey);
+  font-family:var(--sans);font-size:0.7rem;font-weight:600;color:var(--grey-dk);cursor:pointer;text-align:center;transition:all 0.15s;}
+.cl-sc-btn:hover{background:var(--blue-lt);border-color:var(--blue);color:var(--navy-mid);}
+.cl-sc-btn.active{background:var(--navy-mid);border-color:var(--navy-mid);color:#fff;}
+
+/* CL table */
+.cl-table{width:100%;border-collapse:collapse;font-size:0.8rem;}
+.cl-table th{padding:8px 12px;text-align:center;color:#fff;font-size:0.74rem;}
+.cl-table td{padding:9px 12px;text-align:center;border-bottom:1px solid #eef2f7;}
+.cl-table td:first-child{text-align:left;font-weight:600;padding-left:14px;}
+
+/* Compliance */
+.compliance-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;}
+.compliance-card{padding:14px 16px;border-right:1px solid #eef2f7;text-align:center;}
+.compliance-card:last-child{border-right:none;}
+.comp-label{font-size:0.72rem;font-weight:600;text-transform:uppercase;letter-spacing:0.04em;color:var(--grey-dk);margin-bottom:6px;}
+.comp-val{font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--navy-mid);}
+.comp-sub{font-size:0.7rem;color:#7a8898;margin-top:3px;font-style:italic;}
+.compliance-verdict{margin:4px 16px 14px;padding:12px 18px;border-radius:8px;
+  border:2px solid transparent;font-size:0.85rem;font-weight:600;line-height:1.5;}
+.cv-good{background:#e6f4e6;border-color:#6dbe6d;color:#1a5c1a;}
+.cv-low{background:var(--red-lt);border-color:var(--red);color:var(--red);}
+.cv-high{background:var(--amber-lt);border-color:var(--amber);color:var(--amber);}
+.cv-empty{background:var(--grey);border-color:#ccc;color:var(--grey-dk);}
+.comp-bar-wrap{padding:4px 16px 12px;}
+.comp-ratio-bar{height:10px;border-radius:5px;background:#dde5ef;position:relative;overflow:visible;}
+.comp-ratio-fill{height:100%;border-radius:5px;transition:width 0.4s;max-width:100%;position:relative;}
+
+/* Ref table */
+.ref-table{width:100%;border-collapse:collapse;font-size:0.78rem;}
+.ref-table th{background:var(--blue);color:#fff;padding:8px 12px;text-align:center;}
+.ref-table th:first-child{text-align:left;}
+.ref-table td{padding:7px 12px;border-bottom:1px solid #eef2f7;}
+.ref-table td:first-child{font-weight:500;}
+.ref-ther{background:var(--green-lt);}
+.ref-warn{background:var(--amber-lt);}
+.ref-tox{background:var(--red-lt);}
+
+.print-patient-header{display:none;}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;}
+  body{background:#fff!important;padding:0!important;}
+  .app-header{position:static!important;}
+  .btn-group,.action-btn{display:none!important;}
+  .tabs{display:none!important;}
+  .tab-content{display:block!important;padding:12px 20px!important;}
+  .section{box-shadow:none!important;border:1px solid #ccc!important;margin-bottom:10px!important;page-break-inside:avoid;}
+  .two-col{grid-template-columns:1fr 1fr!important;gap:10px!important;}
+  .print-patient-header{display:block!important;}
+  #tab-adj{page-break-before:always;}
+}
+@media(max-width:900px){
+  .two-col{grid-template-columns:1fr;}
+  .form-row{grid-template-columns:150px 120px 55px 1fr;}
+  .tabs,.tab-content,.app-header,.legend,.patient-bar{padding-left:16px;padding-right:16px;}
+}
+@media(max-width:600px){
+  .form-row{grid-template-columns:130px 100px 45px;}
+  .form-row .desc{display:none;}
+}
+</style>
+</head>
+<body>
+
+<div class="app-header">
+  <div style="font-size:1.5rem;">💊</div>
+  <div>
+    <h1>Carbamazepine (Tegretol) — TDM Calculator</h1>
+    <div class="sub">Dose Initiation · Dose Adjustment · Cpss · Compliance Check · Autoinduction</div>
+  </div>
+  <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap;">
+    <span class="pill">CCPH 2nd Ed</span>
+    <span class="pill">Autoinduction</span>
+  </div>
+</div>
+
+<div class="legend">
+  <span class="legend-title">PANDUAN WARNA:</span>
+  <div class="leg-item"><div class="leg-swatch input"></div><span>Boleh diubah (Input)</span></div>
+  <div class="leg-item"><div class="leg-swatch result"></div><span>Dikira automatik</span></div>
+  <div class="leg-item"><div class="leg-swatch linked"></div><span>Linked / Auto</span></div>
+  <div class="leg-item"><div class="leg-swatch fixed"></div><span>Tetap</span></div>
+</div>
+
+<div class="patient-bar">
+  <span class="pt-title">📋 Maklumat Pesakit</span>
+  <div class="pt-fields">
+    <div class="pt-field"><label>Nama:</label><input type="text" id="pt-nama" placeholder="Nama penuh" oninput="updateHeader()"></div>
+    <div class="pt-field"><label>No. IC / MRN:</label><input type="text" id="pt-ic" placeholder="IC/MRN" oninput="updateHeader()"></div>
+    <div class="pt-field"><label>Tarikh:</label><input type="date" id="pt-tarikh" oninput="updateHeader()"></div>
+    <div class="pt-field"><label>Ward:</label><input type="text" id="pt-ward" placeholder="e.g. Wad 5B" oninput="updateHeader()"></div>
+  </div>
+  <div class="btn-group">
+    <button class="action-btn btn-print" onclick="window.print()">🖨️ Cetak</button>
+    <button class="action-btn btn-pdf" id="pdf-btn" onclick="exportPDF()"><span id="pdf-label">📄 Export PDF</span></button>
+  </div>
+</div>
+
+<div class="tabs">
+  <button class="tab-btn active" onclick="switchTab('init',this)">Dose Initiation</button>
+  <button class="tab-btn" onclick="switchTab('adj',this)">Dose Adjustment & Cpss</button>
+  <button class="tab-btn" onclick="switchTab('guide',this)">Dosing Guidelines & Renal</button>
+</div>
+
+<!-- ════════════ TAB 1 — Dose Initiation ════════════ -->
+<div class="tab-content active" id="tab-init">
+  <div class="print-patient-header" id="ph-init"></div>
+
+  <div class="autoinduction-bar">
+    ⚡ <strong>AUTOINDUCTION:</strong> CBZ menginduksi metabolismenya sendiri (CYP3A4). Mulakan pada ¼–⅓ dos yang dikira, tingkatkan setiap 1–2 minggu. Steady-state awal 2–3 minggu. Selepas pelarasan dos: 2–5 hari.
+  </div>
+
+  <div class="two-col">
+    <!-- LEFT: Inputs -->
+    <div>
+      <div class="section">
+        <div class="section-header sh-blue">INPUT PESAKIT</div>
+        <div class="form-row">
+          <div class="label">BW — Berat Badan (kg)</div>
+          <div class="value-cell"><input type="number" id="i-bw" value="50" step="1" oninput="calcInit()"></div>
+          <div class="unit">kg</div>
+          <div class="desc">Actual body weight</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Pesakit</div>
+          <div class="value-cell">
+            <select id="i-age-grp" onchange="calcInit()">
+              <option value="adult">Dewasa</option>
+              <option value="peds">Pediatrik (≤12 thn)</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Dewasa 0.064–0.10 | Peds 0.11 L/kg/hr</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Jenis Terapi</div>
+          <div class="value-cell">
+            <select id="i-therapy" onchange="calcInit()">
+              <option value="mono">Monotherapy</option>
+              <option value="poly">Polytherapy</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Mono: 0.064 | Poly: 0.10 L/kg/hr</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Bioavailability (F)</div>
+          <div class="value-cell"><input type="number" id="i-F" value="0.85" step="0.05" oninput="calcInit()"></div>
+          <div class="unit"></div>
+          <div class="desc">Tablet IR=0.85–0.9 | CR/XR=0.85 | Suspension=0.80</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Salt Factor (S)</div>
+          <div class="value-cell"><input type="number" id="i-S" value="1.0" step="0.05" oninput="calcInit()"></div>
+          <div class="unit"></div>
+          <div class="desc">Carbamazepine = 1.0</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header sh-steel">PARAMETER PK — Population Estimate</div>
+        <!-- CL/kg slider -->
+        <div class="cl-slider-wrap">
+          <div class="cl-slider-header">
+            <span class="cl-slider-label">CL/kg (L/kg/hr)</span>
+            <span class="cl-val-display" id="r-clkg-val">0.064</span>
+          </div>
+          <div class="cl-range-wrap">
+            <input type="range" id="i-clkg-slider" min="0.02" max="0.20" step="0.001" value="0.064"
+              oninput="onSliderChange()" style="--pct:37%">
+          </div>
+          <div class="cl-range-labels">
+            <span id="cl-min-lbl">Min: 0.064</span>
+            <span style="color:var(--teal);font-weight:600;" id="cl-default-lbl">Default: 0.064</span>
+            <span id="cl-max-lbl">Max: 0.064</span>
+          </div>
+          <div class="cl-scenarios" id="cl-presets"></div>
+          <div style="font-size:0.68rem;color:#7a8898;font-style:italic;margin-top:5px;" id="cl-range-note">
+            Dewasa monotherapy: 0.064 L/kg/hr [CCPH]
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="label">Vd/kg (L/kg)</div>
+          <div class="value-cell"><span class="result-val linked" id="r-vdkg">—</span></div>
+          <div class="unit">L/kg</div>
+          <div class="desc">Dewasa avg 1.4 (0.6–2.0) | Pediatrik 1.9 L/kg</div>
+        </div>
+        <div class="note-row">* Autoinduction meningkatkan CL secara berperingkat 1–5 minggu selepas permulaan terapi</div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Calculated PK + Dosing -->
+    <div>
+      <div class="section">
+        <div class="section-header sh-teal">KIRAAN PK — Dose Initiation</div>
+        <div class="form-row">
+          <div class="label">a) CL (L/hr)</div>
+          <div class="value-cell"><span class="result-val" id="r-cl">—</span></div>
+          <div class="unit">L/hr</div>
+          <div class="desc">CL = CL/kg × BW</div>
+        </div>
+        <div class="form-row">
+          <div class="label">b) Vd (L)</div>
+          <div class="value-cell"><span class="result-val" id="r-vd">—</span></div>
+          <div class="unit">L</div>
+          <div class="desc">Vd = Vd/kg × BW</div>
+        </div>
+        <div class="form-row">
+          <div class="label">c) Ke (hr⁻¹)</div>
+          <div class="value-cell"><span class="result-val" id="r-ke">—</span></div>
+          <div class="unit">hr⁻¹</div>
+          <div class="desc">Ke = CL ÷ Vd</div>
+        </div>
+        <div class="form-row">
+          <div class="label">d) t½ (hr)</div>
+          <div class="value-cell"><span class="result-val" id="r-t12">—</span></div>
+          <div class="unit">hr</div>
+          <div class="desc">t½ = 0.693 ÷ Ke</div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-header sh-green">SASARAN & KIRAAN DOS</div>
+        <div class="form-row">
+          <div class="label">Css desired (mg/L)</div>
+          <div class="value-cell"><input type="number" id="i-css" value="6" step="1" oninput="calcInit()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Julat: 4–12 mg/L &nbsp;|&nbsp; <span style="color:var(--teal);font-size:0.68rem;font-weight:600;">µmol/L ÷ 4.233 = mg/L</span></div>
+        </div>
+        <div class="form-row">
+          <div class="label">Interval dos (hr)</div>
+          <div class="value-cell"><input type="number" id="i-ivl" value="12" step="1" oninput="calcInit()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">e.g. 8h, 12h, 24h</div>
+        </div>
+        <div class="form-row">
+          <div class="label" style="color:var(--green);font-weight:700;">e) Maintenance Dose (mg)</div>
+          <div class="value-cell"><span class="result-val highlight" id="r-md">—</span></div>
+          <div class="unit">mg</div>
+          <div class="desc">MD = CL × Css × Interval ÷ (S × F)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">MD — dibundarkan (mg)</div>
+          <div class="value-cell"><span class="result-val grey" id="r-md-round">—</span></div>
+          <div class="unit">mg</div>
+          <div class="desc">Dibundarkan ke atas ke 200 mg (Tegretol 200mg)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Autoinduction Titration Schedule -->
+  <div class="section">
+    <div class="section-header" style="background:#b45309;font-size:0.82rem;padding:12px 18px;">
+      ⚡ JADUAL TITRASI — Autoinduction Carbamazepine
+    </div>
+    <div style="padding:10px 14px 6px;background:#fff8f0;border-bottom:1px solid #eef2f7;font-size:0.8rem;color:#7b3c00;line-height:1.6;">
+      Dos yang dikira (<span id="tit-target-dose" style="font-weight:700;">—</span>) adalah dos <em>selepas</em> autoinduction selesai (1–5 minggu).
+      Terapi mesti dimulakan pada dos lebih rendah dan ditingkat secara beransur.<br>
+      <strong>Dos permulaan dewasa: 200–400 mg/hari</strong>, tingkat <strong>±200 mg setiap 1–2 minggu</strong>.
+    </div>
+
+    <div style="overflow-x:auto;padding:12px 14px 4px;">
+      <div style="font-size:0.76rem;font-weight:600;color:var(--navy-mid);margin-bottom:8px;">Jadual titrasi cadangan (auto-dikira dari MD dibundarkan):</div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.8rem;" id="tit-table">
+        <thead>
+          <tr>
+            <th style="background:var(--navy-mid);color:#fff;padding:8px 14px;text-align:left;font-size:0.74rem;">Minggu</th>
+            <th style="background:var(--navy-mid);color:#fff;padding:8px 14px;text-align:center;font-size:0.74rem;">Dos Harian</th>
+            <th style="background:var(--navy-mid);color:#fff;padding:8px 14px;text-align:center;font-size:0.74rem;">Frekuensi Cadangan</th>
+            <th style="background:var(--navy-mid);color:#fff;padding:8px 14px;text-align:left;font-size:0.74rem;">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tit-tbody">
+          <tr><td colspan="4" style="text-align:center;padding:12px;color:var(--grey-dk);font-style:italic;">Isi BW, terapi, Css desired dan interval untuk jana jadual titrasi</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div style="padding:8px 14px 12px;display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+      <div style="font-size:0.72rem;color:#7a8898;">Selang titrasi:</div>
+      <label style="font-size:0.76rem;font-weight:600;cursor:pointer;">
+        <input type="radio" name="tit-interval" value="1" onchange="calcInit()" style="width:auto;background:none;border:none;margin-right:4px;"> Setiap 1 minggu
+      </label>
+      <label style="font-size:0.76rem;font-weight:600;cursor:pointer;">
+        <input type="radio" name="tit-interval" value="2" checked onchange="calcInit()" style="width:auto;background:none;border:none;margin-right:4px;"> Setiap 2 minggu
+      </label>
+      <div style="margin-left:auto;font-size:0.7rem;color:#7a8898;font-style:italic;">
+        * Steady-state penuh dicapai 2–3 minggu selepas autoinduction selesai
+      </div>
+    </div>
+  </div>
+
+  <div class="warning-bar">⚠ Kiraan adalah panduan sahaja berdasarkan CCPH 2nd Ed. Sentiasa sahkan secara klinikal bersama farmasis atau doktor.</div>
+</div>
+
+<!-- ════════════ TAB 2 — Dose Adjustment ════════════ -->
+<div class="tab-content" id="tab-adj">
+  <div class="print-patient-header" id="ph-adj"></div>
+
+  <div class="two-col">
+    <!-- LEFT -->
+    <div>
+      <div class="section">
+        <div class="section-header sh-blue">REGIMEN SEMASA — Bacaan TDM</div>
+        <div class="form-row">
+          <div class="label">BW — Berat Badan (kg)</div>
+          <div class="value-cell"><input type="number" id="a-bw" value="" step="1" placeholder="kg" oninput="calcAdj()"></div>
+          <div class="unit">kg</div>
+          <div class="desc">Digunakan untuk CL populasi (kiraan min & maks)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Dos semasa (mg)</div>
+          <div class="value-cell"><input type="number" id="a-dose" value="300" step="100" oninput="calcAdj()"></div>
+          <div class="unit">mg</div>
+          <div class="desc">Dos setiap pemberian</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Interval semasa (hr)</div>
+          <div class="value-cell"><input type="number" id="a-ivl" value="12" step="1" oninput="calcAdj()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Selang dos semasa</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Bioavailability (F)</div>
+          <div class="value-cell"><input type="number" id="a-F" value="0.85" step="0.05" oninput="calcAdj()"></div>
+          <div class="unit"></div>
+          <div class="desc">IR=0.85–0.9 | CR/XR=0.85 | Suspension=0.80</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Salt Factor (S)</div>
+          <div class="value-cell"><input type="number" id="a-S" value="1.0" step="0.05" oninput="calcAdj()"></div>
+          <div class="unit"></div>
+          <div class="desc">Carbamazepine = 1.0</div>
+        </div>
+        <!-- Css measured with unit conversion -->
+        <div class="form-row" style="align-items:flex-start;padding-top:6px;padding-bottom:6px;">
+          <div class="label" style="padding-top:8px;">Css measured</div>
+          <div class="value-cell">
+            <input type="number" id="a-css-meas-raw" value="4.8" step="0.1" oninput="convertCss()"
+              style="width:100%;padding:6px 10px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);color:#1a3a5c;font-family:var(--mono);font-size:0.82rem;font-weight:600;text-align:center;outline:none;">
+          </div>
+          <div class="unit" style="padding:0 2px;">
+            <select id="a-css-unit" onchange="convertCss()"
+              style="width:70px;padding:4px 4px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--sans);font-size:0.72rem;font-weight:600;color:#1a3a5c;outline:none;cursor:pointer;">
+              <option value="mgL">mg/L</option>
+              <option value="umol">µmol/L</option>
+            </select>
+          </div>
+          <div class="desc" style="padding:6px 14px;">
+            Bacaan trough steady-state &nbsp;|&nbsp;
+            <span style="color:var(--teal);font-weight:600;">µmol/L ÷ 4.233 = mg/L (MW CBZ 236.27)</span>
+          </div>
+        </div>
+        <div id="css-conv-row" style="display:none;padding:5px 14px 6px;background:var(--teal-lt);border-bottom:1px solid #d0e8e0;">
+          <span style="font-size:0.75rem;color:var(--teal);font-weight:600;">
+            🔄 Konversi: <span id="css-conv-raw">—</span> µmol/L ÷ 4.233 = <strong id="css-conv-result">—</strong> mg/L → digunakan dalam kiraan
+          </span>
+        </div>
+        <input type="hidden" id="a-css-meas" value="4.8">
+      </div>
+
+      <!-- CL table -->
+      <div class="section">
+        <div class="section-header sh-steel">ANGGARAN CL — Populasi (Julat) + Pesakit</div>
+        <div style="overflow-x:auto;">
+          <table class="cl-table">
+            <thead>
+              <tr>
+                <th style="background:#1f497d;text-align:left;padding-left:14px;">Jenis CL</th>
+                <th style="background:#1f5c4e;">CL/kg<br><span style="font-weight:400;font-size:0.65rem;">(L/kg/hr)</span></th>
+                <th style="background:#1f5c4e;">Kiraan<br><span style="font-weight:400;font-size:0.65rem;">CL/kg × BW</span></th>
+                <th style="background:#1f5c4e;">CL (L/hr)</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr style="background:var(--teal-lt);">
+                <td style="color:var(--teal);">Dewasa Monotherapy</td>
+                <td style="font-family:var(--mono);font-weight:700;color:var(--teal);">0.064</td>
+                <td style="font-size:0.75rem;color:var(--grey-dk);" id="r-cl-mono-formula">0.064 × — </td>
+                <td><span style="font-family:var(--mono);font-weight:700;color:var(--teal);" id="r-cl-mono">—</span> L/hr</td>
+              </tr>
+              <tr style="background:var(--green-lt);">
+                <td style="color:var(--green);">Dewasa Polytherapy</td>
+                <td style="font-family:var(--mono);font-weight:700;color:var(--green);">0.10</td>
+                <td style="font-size:0.75rem;color:var(--grey-dk);" id="r-cl-poly-formula">0.10 × —</td>
+                <td><span style="font-family:var(--mono);font-weight:700;color:var(--green);" id="r-cl-poly">—</span> L/hr</td>
+              </tr>
+              <tr style="background:#f5f0ff;">
+                <td style="color:#4b2e83;">Pediatrik Monotherapy</td>
+                <td style="font-family:var(--mono);font-weight:700;color:#4b2e83;">0.11</td>
+                <td style="font-size:0.75rem;color:var(--grey-dk);" id="r-cl-peds-formula">0.11 × —</td>
+                <td><span style="font-family:var(--mono);font-weight:700;color:#4b2e83;" id="r-cl-peds">—</span> L/hr</td>
+              </tr>
+              <tr style="background:#f0f6ff;border-top:2px solid var(--border);">
+                <td style="color:var(--navy-mid);font-weight:700;">CL Pesakit (dari Css)</td>
+                <td style="font-size:0.72rem;color:var(--grey-dk);">—</td>
+                <td style="font-size:0.72rem;color:var(--grey-dk);">S×F×Dose ÷ (Css×Ivl)</td>
+                <td><span style="font-family:var(--mono);font-weight:700;color:var(--blue);font-size:1rem;" id="r-acl">—</span> L/hr</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <div class="note-row">* Monotherapy CL lebih rendah (0.064) berbanding polytherapy (0.10) kerana penginduksi enzim lain. CL akan meningkat akibat autoinduction.</div>
+      </div>
+
+      <!-- Renal adjustment -->
+      <div class="section">
+        <div class="section-header sh-red" style="background:#7b1c1c;">⚕ PELARASAN DOS — Fungsi Renal</div>
+        <div class="form-row">
+          <div class="label">GFR / CrCL (mL/min)</div>
+          <div class="value-cell"><input type="number" id="a-gfr" value="" step="1" placeholder="—" oninput="calcRenal()"></div>
+          <div class="unit">mL/min</div>
+          <div class="desc">Masukkan GFR / CrCL semasa pesakit</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Mod Rawatan Renal</div>
+          <div class="value-cell">
+            <select id="a-renal-mode" onchange="calcRenal()" style="font-size:0.75rem;">
+              <option value="none">Normal / Tiada Dialisis</option>
+              <option value="hd">Intermittent Haemodialysis</option>
+              <option value="pd">Peritoneal Dialysis (PD)</option>
+              <option value="crrt_adult">CRRT (Dewasa)</option>
+              <option value="crrt_peds">CRRT (Pediatrik)</option>
+            </select>
+          </div>
+          <div class="unit"></div>
+          <div class="desc">Pilih mod rawatan renal pesakit</div>
+        </div>
+        <div id="renal-result" style="margin:4px 14px 12px;padding:10px 14px;border-radius:8px;background:var(--grey);border:2px solid #ccc;font-size:0.85rem;font-weight:600;color:var(--grey-dk);">
+          Isi GFR dan pilih mod rawatan untuk cadangan pelarasan dos.
+        </div>
+        <div style="padding:6px 14px 10px;font-size:0.7rem;color:#7a8898;font-style:italic;">
+          * Berdasarkan CCPH 2nd Ed. Dewasa: GFR ≥10 → dos normal; &lt;10 → 75% dos. Peds: GFR ≥10/1.73m² → normal; &lt;10 → 75%.
+        </div>
+      </div>
+
+      <!-- Status -->
+      <div id="adj-status" class="status-empty" style="border-radius:8px;margin-bottom:4px;padding:13px 20px;font-size:0.9rem;font-weight:600;text-align:center;border:2px solid transparent;">
+        Isi nilai di atas untuk melihat interpretasi
+      </div>
+    </div>
+
+    <!-- RIGHT: New dose -->
+    <div>
+      <div class="section">
+        <div class="section-header sh-green">DOS BARU — Berdasarkan Css Target</div>
+        <div class="form-row">
+          <div class="label">Css target (mg/L)</div>
+          <div class="value-cell"><input type="number" id="a-css-tgt" value="6" step="1" oninput="calcAdj()"></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Julat: 4–12 mg/L &nbsp;|&nbsp; <span style="color:var(--teal);font-size:0.68rem;font-weight:600;">µmol/L ÷ 4.233 = mg/L</span></div>
+        </div>
+        <div class="form-row">
+          <div class="label">Interval baru (hr)</div>
+          <div class="value-cell"><input type="number" id="a-ivl-new" value="12" step="1" oninput="calcAdj()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Selang dos baru</div>
+        </div>
+        <div class="form-row">
+          <div class="label" style="color:var(--green);font-weight:700;">New Maintenance Dose (mg)</div>
+          <div class="value-cell"><span class="result-val highlight" id="r-amd">—</span></div>
+          <div class="unit">mg</div>
+          <div class="desc">MD = CL × Css target × Interval ÷ (S × F)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">New MD — dibundarkan (mg)</div>
+          <div class="value-cell"><span class="result-val grey" id="r-amd-round">—</span></div>
+          <div class="unit">mg</div>
+          <div class="desc">Dibundarkan ke atas ke 200 mg</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Expected Cpss — Exact (mg/L)</div>
+          <div class="value-cell"><span class="result-val teal" id="r-cpss-exact">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cpss = S × F × Dose ÷ (CL × Interval)</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Expected Cpss — Rounded (mg/L)</div>
+          <div class="value-cell"><span class="result-val teal" id="r-cpss-round">—</span></div>
+          <div class="unit">mg/L</div>
+          <div class="desc">Cpss dari dos selepas dibundarkan</div>
+        </div>
+
+        <!-- Split dose new -->
+        <div style="background:#f4f8f2;border-top:2px solid var(--green);padding:10px 14px 6px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+            <span style="font-size:0.78rem;font-weight:700;color:var(--green);">✂ Split Dos Baru</span>
+            <select id="new-split-freq" onchange="updateNewSplitUI();calcAdj();"
+              style="width:auto;padding:4px 10px;font-size:0.76rem;font-weight:500;background:var(--green-lt);border:1.5px solid var(--green);border-radius:6px;color:var(--green);">
+              <option value="2">BD (q12h)</option>
+              <option value="3">TDS (q8h)</option>
+              <option value="4">QDS (q6h)</option>
+            </select>
+          </div>
+          <div id="new-split-bd">
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px;">
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">Dos 1 — Pagi (mg)</div>
+                <input type="number" id="nd-d1" value="200" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.85rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">Dos 2 — Malam (mg)</div>
+                <input type="number" id="nd-d2" value="400" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.85rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+            </div>
+          </div>
+          <div id="new-split-tds" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">Dos 1</div><input type="number" id="nd-t1" value="200" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.82rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">Dos 2</div><input type="number" id="nd-t2" value="200" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.82rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">Dos 3</div><input type="number" id="nd-t3" value="400" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.82rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+            </div>
+          </div>
+          <div id="new-split-qds" style="display:none;">
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin-bottom:6px;">
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">D1</div><input type="number" id="nd-q1" value="200" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.82rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">D2</div><input type="number" id="nd-q2" value="200" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.82rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">D3</div><input type="number" id="nd-q3" value="200" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.82rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+              <div><div style="font-size:0.68rem;color:var(--grey-dk);margin-bottom:3px;">D4</div><input type="number" id="nd-q4" value="200" step="200" oninput="calcAdj()" style="background:var(--blue-lt);border:1.5px solid #b8d0e8;border-radius:6px;padding:6px;font-family:var(--mono);font-size:0.82rem;font-weight:700;text-align:center;width:100%;outline:none;"></div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;background:#fff;border-radius:8px;padding:8px;border:1px solid var(--green-lt);">
+            <div style="text-align:center;"><div style="font-size:0.65rem;font-weight:600;color:var(--grey-dk);text-transform:uppercase;margin-bottom:3px;">TDD</div>
+              <div style="font-family:var(--mono);font-weight:700;color:var(--navy-mid);" id="nd-tdd">—</div><div style="font-size:0.65rem;color:var(--grey-dk);">mg/hari</div></div>
+            <div style="text-align:center;background:var(--green-lt);border-radius:6px;padding:4px;">
+              <div style="font-size:0.65rem;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:3px;">Expected Cpss</div>
+              <div style="font-family:var(--mono);font-size:1.1rem;font-weight:700;color:var(--green);" id="nd-cpss">—</div><div style="font-size:0.65rem;color:var(--grey-dk);">mg/L</div></div>
+            <div style="text-align:center;"><div style="font-size:0.65rem;font-weight:600;color:var(--grey-dk);text-transform:uppercase;margin-bottom:3px;">Dos Avg</div>
+              <div style="font-family:var(--mono);font-weight:700;color:var(--navy-mid);" id="nd-avg">—</div><div style="font-size:0.65rem;color:var(--grey-dk);">mg</div></div>
+          </div>
+          <div style="font-size:0.67rem;color:#7a8898;font-style:italic;margin-top:5px;" id="nd-formula">Cpss = S × F × TDD ÷ (CL × 24)</div>
+        </div>
+      </div>
+
+      <!-- Custom Cpss -->
+      <div class="section">
+        <div class="section-header sh-purple">KALKULATOR Cpss — Sebarang Dos & Interval</div>
+        <div class="note-row">Anggarkan Cpss untuk sebarang dos menggunakan CL pesakit</div>
+        <div class="form-row">
+          <div class="label">Dos untuk dikira (mg)</div>
+          <div class="value-cell"><input type="number" id="c-dose" value="400" step="100" oninput="calcAdj()"></div>
+          <div class="unit">mg</div>
+          <div class="desc">Masukkan dos yang diingini</div>
+        </div>
+        <div class="form-row">
+          <div class="label">Interval untuk dikira (hr)</div>
+          <div class="value-cell"><input type="number" id="c-ivl" value="12" step="1" oninput="calcAdj()"></div>
+          <div class="unit">hr</div>
+          <div class="desc">Masukkan interval yang diingini</div>
+        </div>
+        <div style="padding:12px 16px;background:var(--linked);border-radius:0 0 10px 10px;">
+          <div style="font-size:0.7rem;font-weight:600;color:var(--grey-dk);text-transform:uppercase;margin-bottom:4px;">Jangkaan Cpss</div>
+          <span style="font-family:var(--mono);font-size:1.4rem;font-weight:700;color:var(--navy-mid);" id="r-cpss-custom">—</span>
+          <span style="font-size:0.8rem;color:var(--grey-dk);margin-left:4px;">mg/L</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Compliance -->
+  <div class="section" style="margin-bottom:18px;">
+    <div class="section-header" style="background:#1a3a5c;font-size:0.82rem;padding:12px 18px;">
+      🔍 SEMAKAN COMPLIANCE — Expected Cpss (Julat Populasi) vs Bacaan Lab
+    </div>
+    <div class="note-row">Expected Cpss dikira menggunakan <strong>julat CL populasi</strong> (monotherapy min vs polytherapy maks).</div>
+
+    <div style="padding:10px 14px 6px;border-bottom:1px solid #eef2f7;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="font-size:0.78rem;font-weight:600;color:var(--navy-mid);">Julat CL Populasi:</span>
+      <select id="comp-range-sel" onchange="calcAdj()" style="width:auto;padding:5px 10px;font-size:0.78rem;font-weight:500;background:var(--blue-lt);">
+        <option value="mono">Dewasa Monotherapy (0.064 L/kg/hr)</option>
+        <option value="poly">Dewasa Polytherapy (0.10 L/kg/hr)</option>
+        <option value="peds">Pediatrik Monotherapy (0.11 L/kg/hr)</option>
+      </select>
+      <span style="font-size:0.72rem;color:var(--grey-dk);font-style:italic;">BW dari input atas</span>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:0.82rem;">
+        <thead>
+          <tr>
+            <th style="background:var(--blue);color:#fff;padding:9px 14px;text-align:left;font-size:0.76rem;">Parameter</th>
+            <th style="background:#1f5c4e;color:#fff;padding:9px 14px;text-align:center;font-size:0.76rem;">Expected — Monotherapy<br><span style="font-weight:400;font-size:0.65rem;">(CL 0.064 L/kg/hr)</span></th>
+            <th style="background:#375623;color:#fff;padding:9px 14px;text-align:center;font-size:0.76rem;">Expected — Polytherapy<br><span style="font-weight:400;font-size:0.65rem;">(CL 0.10 L/kg/hr)</span></th>
+            <th style="background:#1f497d;color:#fff;padding:9px 14px;text-align:center;font-size:0.76rem;">Cpss Diukur<br><span style="font-weight:400;font-size:0.65rem;">(Bacaan Lab)</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td style="padding:10px 14px;font-weight:600;border-bottom:1px solid #eef2f7;">CL (L/hr)</td>
+            <td style="padding:10px;text-align:center;border-bottom:1px solid #eef2f7;background:var(--teal-lt);">
+              <span style="font-family:var(--mono);font-weight:700;color:var(--teal);" id="comp-cl-mono">—</span> L/hr
+            </td>
+            <td style="padding:10px;text-align:center;border-bottom:1px solid #eef2f7;background:var(--green-lt);">
+              <span style="font-family:var(--mono);font-weight:700;color:var(--green);" id="comp-cl-poly">—</span> L/hr
+            </td>
+            <td style="padding:10px;text-align:center;border-bottom:1px solid #eef2f7;background:#f0f6ff;">
+              <span style="font-family:var(--mono);font-weight:700;color:var(--blue);" id="comp-cl-pat">—</span> L/hr
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:10px 14px;font-weight:700;font-size:0.88rem;color:var(--navy-mid);">Expected Cpss (mg/L)</td>
+            <td style="padding:10px;text-align:center;background:var(--teal-lt);">
+              <span style="font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--teal);" id="comp-exp-mono">—</span>
+              <div style="font-size:0.68rem;color:var(--grey-dk);margin-top:2px;">CL mono → Cpss tinggi</div>
+            </td>
+            <td style="padding:10px;text-align:center;background:var(--green-lt);">
+              <span style="font-family:var(--mono);font-size:1.2rem;font-weight:700;color:var(--green);" id="comp-exp-poly">—</span>
+              <div style="font-size:0.68rem;color:var(--grey-dk);margin-top:2px;">CL poly → Cpss rendah</div>
+            </td>
+            <td style="padding:10px;text-align:center;background:#f0f6ff;">
+              <span style="font-family:var(--mono);font-size:1.2rem;font-weight:700;" id="comp-meas-val">—</span>
+              <div style="font-size:0.68rem;color:var(--grey-dk);margin-top:2px;">Bacaan TDM</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Bar visualisation -->
+    <div style="padding:12px 16px 8px;">
+      <div style="font-size:0.72rem;font-weight:600;color:var(--grey-dk);margin-bottom:6px;">
+        Visualisasi: Julat Expected (min → max) &nbsp;|&nbsp; 🔵 = Cpss Diukur
+      </div>
+      <div style="position:relative;height:28px;background:#e8eef5;border-radius:8px;overflow:visible;">
+        <div id="comp-range-band" style="position:absolute;top:0;height:100%;border-radius:8px;background:linear-gradient(to right,rgba(31,92,78,0.25),rgba(55,86,35,0.25));transition:all 0.4s;"></div>
+        <div id="comp-meas-dot" style="position:absolute;top:50%;transform:translate(-50%,-50%);width:16px;height:16px;border-radius:50%;background:var(--blue);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:left 0.4s;display:none;"></div>
+        <div id="comp-line-min" style="position:absolute;top:-4px;width:2px;height:36px;background:var(--teal);border-radius:1px;transition:left 0.4s;"></div>
+        <div id="comp-line-max" style="position:absolute;top:-4px;width:2px;height:36px;background:var(--green);border-radius:1px;transition:left 0.4s;"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;font-size:0.65rem;color:var(--grey-dk);margin-top:4px;">
+        <span>0</span>
+        <span id="comp-bar-mid" style="color:var(--navy-mid);font-weight:600;">—</span>
+        <span id="comp-bar-max">—</span>
+      </div>
+    </div>
+
+    <div class="compliance-verdict cv-empty" id="comp-verdict" style="margin:4px 16px 14px;">
+      Isi dos semasa, interval, F, S, dan Css measured.
+    </div>
+    <div style="padding:6px 16px 10px;font-size:0.7rem;color:#7a8898;font-style:italic;border-top:1px solid #eef2f7;">
+      * Compliance TIDAK MEMUASKAN jika Cpss diukur &lt;80% atau &gt;120% dari julat Expected. Autoinduction boleh menyebabkan Cpss lebih rendah dari jangkaan walaupun compliance baik.
+    </div>
+  </div>
+
+  <!-- Ref table -->
+  <div class="section">
+    <div class="section-header sh-dark">JADUAL RUJUKAN — Tahap Terapeutik & Toksisiti CBZ</div>
+    <div style="overflow-x:auto;padding:4px;">
+      <table class="ref-table">
+        <thead><tr><th>Indikasi / Tahap</th><th>Julat (mg/L)</th><th>Catatan</th></tr></thead>
+        <tbody>
+          <tr class="ref-ther"><td>Epilepsi / Bipolar / Neuralgia</td><td style="text-align:center;font-weight:700;">4 – 12</td><td>Julat terapeutik penuh</td></tr>
+          <tr class="ref-warn"><td>Mild-moderate toxicity</td><td style="text-align:center;font-weight:700;">&lt;30</td><td>CNS depression, letargi, ataxia, diplopia</td></tr>
+          <tr class="ref-tox"><td>Severe toxicity (coma, seizure)</td><td style="text-align:center;font-weight:700;">&gt;40</td><td>HD/haemoperfusion boleh dipertimbangkan</td></tr>
+          <tr class="ref-tox"><td>Hiponatremia</td><td style="text-align:center;font-weight:700;">4–21.7% kes</td><td>Pantau Na+ — SIADH</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:8px 14px;font-size:0.71rem;color:#7a8898;font-style:italic;border-top:1px solid #eef2f7;">
+      µmol/L → mg/L: CBZ MW = 236.27 g/mol &nbsp;→&nbsp; µmol/L ÷ 4.233 = mg/L &nbsp;|&nbsp; mg/L × 4.233 = µmol/L
+    </div>
+    <div class="warning-bar">⚠ Kiraan adalah panduan sahaja. Sentiasa sahkan secara klinikal bersama farmasis atau doktor.</div>
+  </div>
+
+  <!-- ── JADUAL SEMAKAN SAMPLE SEMULA ── -->
+  <div class="section" style="margin-bottom:18px;">
+    <div class="section-header" style="background:#1a3a5c;padding:12px 18px;font-size:0.82rem;">
+      📅 JADUAL SEMAKAN SAMPLE — Selepas Redose CBZ
+    </div>
+    <div class="note-row">
+      CBZ mencapai steady-state dalam <strong>2–5 hari</strong> (tanpa autoinduction). Selepas pelarasan dos, sample perlu diambil semula apabila steady-state baru dicapai.
+    </div>
+
+    <!-- Inputs -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;border-bottom:1px solid #eef2f7;">
+      <div style="padding:12px 14px;border-right:1px solid #eef2f7;">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;margin-bottom:8px;">Dos Baru Dimulakan</div>
+        <div style="margin-bottom:8px;">
+          <div style="font-size:0.72rem;color:var(--grey-dk);margin-bottom:4px;">Tarikh</div>
+          <input type="date" id="cbz-nd-date" oninput="calcCBZNextDose()"
+            style="width:100%;padding:7px 10px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.8rem;font-weight:600;outline:none;">
+        </div>
+        <div>
+          <div style="font-size:0.72rem;color:var(--grey-dk);margin-bottom:4px;">Masa</div>
+          <input type="time" id="cbz-nd-time" value="08:00" oninput="calcCBZNextDose()"
+            style="width:100%;padding:7px 10px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.8rem;font-weight:600;outline:none;">
+        </div>
+      </div>
+      <div style="padding:12px 14px;border-right:1px solid #eef2f7;">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;margin-bottom:8px;">Interval Dos Baru</div>
+        <select id="cbz-freq" onchange="calcCBZNextDose()"
+          style="width:100%;padding:10px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.82rem;font-weight:600;outline:none;margin-bottom:10px;">
+          <option value="8">TDS — q8h (setiap 8 jam)</option>
+          <option value="12" selected>BD — q12h (setiap 12 jam)</option>
+          <option value="24">OD — q24h (sekali sehari)</option>
+        </select>
+        <div style="font-size:0.72rem;color:var(--grey-dk);margin-bottom:4px;">Dos setiap pemberian (mg)</div>
+        <input type="number" id="cbz-dose-per" value="" step="200" placeholder="auto dari kiraan"
+          oninput="calcCBZNextDose()"
+          style="width:100%;padding:7px 10px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.82rem;font-weight:600;text-align:center;outline:none;">
+      </div>
+      <div style="padding:12px 14px;">
+        <div style="font-size:0.72rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;margin-bottom:8px;">Masa Semak Sample</div>
+        <select id="cbz-ss-days" onchange="calcCBZNextDose()"
+          style="width:100%;padding:10px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.82rem;font-weight:600;outline:none;margin-bottom:10px;">
+          <option value="2">Selepas 2 hari (SS awal)</option>
+          <option value="3">Selepas 3 hari</option>
+          <option value="4">Selepas 4 hari</option>
+          <option value="5" selected>Selepas 5 hari (SS penuh)</option>
+          <option value="7">Selepas 7 hari</option>
+          <option value="14">Selepas 2 minggu (post autoinduction)</option>
+        </select>
+        <div style="padding:8px 10px;background:var(--amber-lt);border-radius:8px;font-size:0.72rem;color:var(--amber);font-weight:600;">
+          ⚡ Dengan autoinduction: SS sebenar dicapai ~2–3 minggu. Semak awal pada 5 hari, kemudian semak semula selepas 2–3 minggu.
+        </div>
+      </div>
+    </div>
+
+    <!-- Output -->
+    <div id="cbz-nd-output" style="display:none;padding:14px 16px;">
+
+      <!-- Schedule cards -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px;">
+        <div style="background:#fff;border-radius:10px;border:2px solid var(--green-lt);padding:14px;">
+          <div style="font-size:0.7rem;font-weight:700;color:var(--green);text-transform:uppercase;margin-bottom:8px;">📅 Dos Seterusnya</div>
+          <div style="font-family:var(--mono);font-size:0.88rem;font-weight:700;color:var(--navy-mid);" id="cbz-next-dose-dt">—</div>
+          <div style="font-size:0.72rem;color:var(--grey-dk);margin-top:4px;" id="cbz-next-dose-mg">—</div>
+        </div>
+        <div style="background:#fff;border-radius:10px;border:2px solid var(--amber-lt);padding:14px;">
+          <div style="font-size:0.7rem;font-weight:700;color:var(--amber);text-transform:uppercase;margin-bottom:8px;">🔬 Ambil Sample (Trough)</div>
+          <div style="font-family:var(--mono);font-size:0.88rem;font-weight:700;color:var(--navy-mid);" id="cbz-sample-dt">—</div>
+          <div style="font-size:0.72rem;color:var(--grey-dk);margin-top:4px;">30 min sebelum dos</div>
+        </div>
+      </div>
+
+      <!-- Timeline jadual -->
+      <div style="font-size:0.76rem;font-weight:700;color:var(--navy-mid);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:8px;">
+        Jadual Lengkap
+      </div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;font-size:0.8rem;">
+          <thead>
+            <tr>
+              <th style="background:var(--navy-mid);color:#fff;padding:8px 12px;text-align:center;width:50px;">Hari</th>
+              <th style="background:var(--navy-mid);color:#fff;padding:8px 12px;text-align:left;">Tarikh</th>
+              <th style="background:var(--navy-mid);color:#fff;padding:8px 12px;text-align:left;">Masa</th>
+              <th style="background:var(--navy-mid);color:#fff;padding:8px 12px;text-align:center;">Dos (mg)</th>
+              <th style="background:var(--navy-mid);color:#fff;padding:8px 12px;text-align:left;">Catatan</th>
+            </tr>
+          </thead>
+          <tbody id="cbz-nd-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- Recommendation -->
+      <div id="cbz-rec-text" style="margin-top:12px;padding:12px 14px;background:#fffbe6;border-radius:8px;border-left:4px solid #e0c040;font-size:0.8rem;color:#7a5a00;line-height:1.8;"></div>
+    </div>
+
+    <div style="padding:6px 16px 10px;font-size:0.7rem;color:#7a8898;font-style:italic;border-top:1px solid #eef2f7;">
+      * CBZ autoinduction menyebabkan CL meningkat dalam 1–5 minggu. Semak awal pada 5 hari selepas redose, kemudian semak semula selepas 2–3 minggu untuk steady-state sebenar.
+    </div>
+  </div>
+
+</div>
+
+<script>
+const v   = id => parseFloat(document.getElementById(id)?.value) || 0;
+const sv  = id => document.getElementById(id)?.value || '';
+const el  = id => document.getElementById(id);
+const fmt = (n,d=2) => (isFinite(n)&&!isNaN(n)) ? n.toFixed(d) : '—';
+
+function setResult(id,val,dec=2){ const e=el(id); if(!e)return; e.textContent=(isFinite(val)&&!isNaN(val))?val.toFixed(dec):'—'; }
+function setText(id,txt){ const e=el(id); if(e) e.textContent=txt; }
+function ceilTo(val,step){ return Math.ceil(val/step)*step; }
+
+function switchTab(tab,btn){
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));
+  el('tab-'+tab).classList.add('active');
+  if(btn) btn.classList.add('active');
+}
+
+// ── CL/kg ranges for CBZ (L/kg/hr) ──
+const CBZ_RANGES = {
+  adult_mono:  { min:0.064, max:0.064, def:0.064, note:'Dewasa monotherapy: 0.064 L/kg/hr [CCPH]' },
+  adult_poly:  { min:0.064, max:0.10,  def:0.10,  note:'Dewasa polytherapy: 0.10 L/kg/hr [CCPH]' },
+  peds_mono:   { min:0.064, max:0.11,  def:0.11,  note:'Pediatrik monotherapy: 0.11 L/kg/hr [CCPH]' },
+};
+
+function getClRange(){
+  const isPeds = sv('i-age-grp')==='peds';
+  const isPoly = sv('i-therapy')==='poly';
+  if(isPeds) return CBZ_RANGES.peds_mono;
+  return isPoly ? CBZ_RANGES.adult_poly : CBZ_RANGES.adult_mono;
+}
+
+function updateSliderUI(range,val){
+  const slider=el('i-clkg-slider');
+  slider.min  = (range.min*0.5).toFixed(3);
+  slider.max  = (range.max*2.0).toFixed(3);
+  slider.step = 0.001;
+  slider.value= val;
+  const pct=((val-parseFloat(slider.min))/(parseFloat(slider.max)-parseFloat(slider.min))*100).toFixed(1);
+  slider.style.setProperty('--pct',pct+'%');
+  el('r-clkg-val').textContent = parseFloat(val).toFixed(3);
+  el('cl-min-lbl').textContent = 'Min: '+range.min.toFixed(3);
+  el('cl-max-lbl').textContent = 'Max: '+range.max.toFixed(3);
+  el('cl-default-lbl').textContent = 'Default: '+range.def.toFixed(3);
+  el('cl-range-note').textContent  = range.note;
+  // Presets
+  const presets = [
+    {label:`Mono (0.064)`, val:0.064},
+    {label:`Poly (0.10)`,  val:0.10 },
+    {label:`Peds (0.11)`,  val:0.11 },
+  ];
+  const wrap=el('cl-presets'); wrap.innerHTML='';
+  presets.forEach(p=>{
+    const btn=document.createElement('button');
+    btn.className='cl-sc-btn'+(Math.abs(parseFloat(val)-p.val)<0.0001?' active':'');
+    btn.textContent=p.label;
+    btn.onclick=()=>{ el('i-clkg-slider').value=p.val; onSliderChange(); };
+    wrap.appendChild(btn);
+  });
+}
+
+function onSliderChange(){
+  const range=getClRange();
+  const val=parseFloat(el('i-clkg-slider').value);
+  updateSliderUI(range,val);
+  calcInit();
+}
+
+// ── Tab 1: Dose Initiation ──
+function calcInit(){
+  const bw  = v('i-bw');
+  const isPeds = sv('i-age-grp')==='peds';
+  const F   = v('i-F')||0.85;
+  const S   = v('i-S')||1;
+  const css = v('i-css');
+  const ivl = v('i-ivl');
+
+  const range = getClRange();
+  const curSlider = parseFloat(el('i-clkg-slider').value);
+  const needReset = curSlider < range.min*0.3 || curSlider > range.max*2.5;
+  const clkg = needReset ? range.def : curSlider;
+  updateSliderUI(range, clkg);
+
+  const vdkg = isPeds ? 1.9 : 1.4;
+  setText('r-vdkg', vdkg+' L/kg');
+
+  const CL  = bw > 0 ? clkg * bw : NaN;
+  const Vd  = bw > 0 ? vdkg * bw : NaN;
+  const Ke  = (CL>0&&Vd>0) ? CL/Vd : NaN;
+  const t12 = Ke>0 ? 0.693/Ke : NaN;
+
+  setResult('r-cl',  CL,  3);
+  setResult('r-vd',  Vd,  2);
+  setResult('r-ke',  Ke,  4);
+  setResult('r-t12', t12, 2);
+
+  const md = (CL>0&&css>0&&ivl>0&&S>0&&F>0) ? CL*css*ivl/(S*F) : NaN;
+  setResult('r-md', md, 0);
+  const mdR = isFinite(md) ? ceilTo(md,200) : NaN;
+  setText('r-md-round', isFinite(mdR) ? mdR+' mg' : '—');
+
+  // ── Autoinduction Titration Schedule ──────────────────────────────────
+  const titTarget = el('tit-target-dose');
+  const titTbody  = el('tit-tbody');
+  if (!titTarget || !titTbody) return;
+
+  if (!isFinite(mdR) || mdR <= 0) {
+    titTarget.textContent = '—';
+    titTbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:12px;color:var(--grey-dk);font-style:italic;">Isi BW, terapi, Css desired dan interval untuk jana jadual titrasi</td></tr>';
+    return;
+  }
+
+  titTarget.textContent = mdR + ' mg/hari';
+
+  // Interval: 1 or 2 weeks
+  const titIvlEl = document.querySelector('input[name="tit-interval"]:checked');
+  const titIvl   = titIvlEl ? parseInt(titIvlEl.value) : 2;
+
+  // Build titration steps: start at 200 or 400 mg, increase by 200 each interval
+  // Adults: 200–400 mg initial, then +200 every titIvl weeks
+  const steps = [];
+  let dose = 200; // always start at 200mg
+  let week = 0;
+
+  while (dose < mdR) {
+    steps.push({ week: week === 0 ? 'Permulaan' : `Minggu ${week}`, dose, isFinal: false });
+    week += titIvl;
+    dose += 200;
+  }
+  // Final step = target dose
+  steps.push({ week: week === 0 ? 'Permulaan' : `Minggu ${week}`, dose: mdR, isFinal: true });
+
+  const freqLabel = (d) => {
+    const ivlH = v('i-ivl') || 12;
+    const freq  = 24 / ivlH;
+    const perDose = Math.round(d / freq / 200) * 200;
+    if (freq === 2)      return `${perDose} mg BD (q12h)`;
+    if (freq === 3)      return `${perDose} mg TDS (q8h)`;
+    if (freq === 4)      return `${perDose} mg QDS (q6h)`;
+    return `${d} mg/hari`;
+  };
+
+  const rowColors = ['#ffffff','#f8fbff'];
+  let html = '';
+  steps.forEach((s, i) => {
+    const bg = s.isFinal ? 'var(--green-lt)' : rowColors[i % 2];
+    const statusTxt = s.isFinal
+      ? `<span style="color:var(--green);font-weight:700;">✓ Dos sasaran (selepas autoinduction)</span>`
+      : i === 0
+        ? '<span style="color:var(--navy-mid);">Dos permulaan</span>'
+        : `<span style="color:var(--orange);">+200 mg dari minggu sebelum</span>`;
+    html += `<tr style="background:${bg};">
+      <td style="padding:9px 14px;font-weight:600;color:var(--navy-mid);">${s.week}</td>
+      <td style="padding:9px;text-align:center;font-family:var(--mono);font-weight:700;font-size:0.92rem;
+        color:${s.isFinal?'var(--green)':'var(--navy-mid)'};">${s.dose} mg/hari</td>
+      <td style="padding:9px;text-align:center;font-size:0.78rem;color:var(--grey-dk);">${freqLabel(s.dose)}</td>
+      <td style="padding:9px 14px;font-size:0.78rem;">${statusTxt}</td>
+    </tr>`;
+  });
+
+  // Add SS timing note
+  const totalWeeks = steps[steps.length-1].week === 'Permulaan' ? 0 : parseInt(steps[steps.length-1].week.replace('Minggu ',''));
+  const ssWeeks = totalWeeks + 3; // +2-3 weeks for SS after final dose
+  html += `<tr style="background:#f0f6ff;">
+    <td colspan="4" style="padding:8px 14px;font-size:0.74rem;color:var(--blue);font-style:italic;">
+      ⏱ Anggaran steady-state dicapai: <strong>~Minggu ${ssWeeks}</strong> (selepas autoinduction + 2–3 minggu SS)
+    </td></tr>`;
+
+  titTbody.innerHTML = html;
+}
+
+// ── µmol/L conversion for CBZ ──
+const CBZ_CONV = 4.233; // MW 236.27 → µmol/L ÷ 4.233 = mg/L
+
+function convertCss(){
+  const raw  = parseFloat(el('a-css-meas-raw').value)||0;
+  const unit = sv('a-css-unit');
+  const convRow = el('css-conv-row');
+  let mgL;
+  if(unit==='umol'){
+    mgL = raw/CBZ_CONV;
+    convRow.style.display='';
+    el('css-conv-raw').textContent = raw.toFixed(1);
+    el('css-conv-result').textContent = mgL.toFixed(2);
+  } else {
+    mgL = raw; convRow.style.display='none';
+  }
+  el('a-css-meas').value = mgL.toFixed(4);
+  calcAdj();
+}
+
+// ── Tab 2: Dose Adjustment ──
+function updateNewSplitUI(){
+  const freq=parseInt(sv('new-split-freq'))||2;
+  el('new-split-bd').style.display  = freq===2?'':'none';
+  el('new-split-tds').style.display = freq===3?'':'none';
+  el('new-split-qds').style.display = freq===4?'':'none';
+}
+
+function calcAdj(){
+  const dose    = v('a-dose');
+  const ivl     = v('a-ivl');
+  const F       = v('a-F')||0.85;
+  const S       = v('a-S')||1;
+  const cssMeas = parseFloat(el('a-css-meas').value)||0;
+  const cssTgt  = v('a-css-tgt');
+  const ivlNew  = v('a-ivl-new');
+  const bwAdj   = v('a-bw') > 0 ? v('a-bw') : (v('i-bw') > 0 ? v('i-bw') : 70);
+  const cDose   = v('c-dose');
+  const cIvl    = v('c-ivl');
+
+  // Population CL rows
+  const clMono  = 0.064 * bwAdj;
+  const clPoly  = 0.10  * bwAdj;
+  const clPeds  = 0.11  * bwAdj;
+  el('r-cl-mono-formula').textContent = `0.064 × ${bwAdj}`;
+  el('r-cl-poly-formula').textContent = `0.10 × ${bwAdj}`;
+  el('r-cl-peds-formula').textContent = `0.11 × ${bwAdj}`;
+  el('r-cl-mono').textContent = clMono.toFixed(3);
+  el('r-cl-poly').textContent = clPoly.toFixed(3);
+  el('r-cl-peds').textContent = clPeds.toFixed(3);
+
+  // Patient CL
+  const CL = (cssMeas>0&&ivl>0) ? S*F*dose/(ivl*cssMeas) : NaN;
+  setResult('r-acl', CL, 3);
+  el('comp-cl-pat').textContent = isFinite(CL) ? CL.toFixed(3) : '—';
+
+  // Status of current level
+  const sb=el('adj-status');
+  if(!cssMeas||cssMeas===0){ sb.textContent='Isi nilai di atas untuk melihat interpretasi'; sb.className='status-empty'; }
+  else if(cssMeas<4){ sb.textContent=`✗  Css = ${cssMeas} mg/L  →  SUBTHERAPEUTIC (<4) — pertimbangkan tambah dos`; sb.className='status-low'; }
+  else if(cssMeas<=12){ sb.textContent=`✓  Css = ${cssMeas} mg/L  →  DALAM SASARAN (4–12 mg/L)`; sb.className='status-ok'; }
+  else{ sb.textContent=`✗  Css = ${cssMeas} mg/L  →  TOKSIK (>12) — semak gejala & kurangkan dos`; sb.className='status-high'; }
+
+  // New MD
+  const mdNew   = (isFinite(CL)&&CL>0&&cssTgt>0&&ivlNew>0) ? CL*cssTgt*ivlNew/(S*F) : NaN;
+  setResult('r-amd', mdNew, 0);
+  const mdRound = isFinite(mdNew) ? ceilTo(mdNew,200) : NaN;
+  setText('r-amd-round', isFinite(mdRound) ? mdRound+' mg' : '—');
+
+  const cpssExact = (isFinite(CL)&&CL>0&&ivlNew>0&&isFinite(mdNew)) ? S*F*mdNew/(CL*ivlNew) : NaN;
+  setResult('r-cpss-exact', cpssExact, 1);
+  const cpssRound = (isFinite(CL)&&CL>0&&ivlNew>0&&isFinite(mdRound)) ? S*F*mdRound/(CL*ivlNew) : NaN;
+  setResult('r-cpss-round', cpssRound, 1);
+
+  // Custom Cpss
+  const cpssCustom = (isFinite(CL)&&CL>0&&cDose>0&&cIvl>0) ? S*F*cDose/(CL*cIvl) : NaN;
+  el('r-cpss-custom').textContent = isFinite(cpssCustom) ? cpssCustom.toFixed(1) : '—';
+
+  // New dose split
+  const newFreq = parseInt(sv('new-split-freq'))||2;
+  let newDoses = [];
+  if(newFreq===2) newDoses=[v('nd-d1'),v('nd-d2')];
+  else if(newFreq===3) newDoses=[v('nd-t1'),v('nd-t2'),v('nd-t3')];
+  else newDoses=[v('nd-q1'),v('nd-q2'),v('nd-q3'),v('nd-q4')];
+  const ndTDD = newDoses.reduce((a,b)=>a+b,0);
+  const ndAvg = ndTDD/newFreq;
+  const ndCpss = (isFinite(CL)&&CL>0&&ndTDD>0) ? S*F*ndTDD/(CL*24) : NaN;
+  el('nd-tdd').textContent  = ndTDD>0 ? ndTDD.toFixed(0) : '—';
+  el('nd-avg').textContent  = ndTDD>0 ? ndAvg.toFixed(0)  : '—';
+  el('nd-cpss').textContent = isFinite(ndCpss) ? ndCpss.toFixed(1) : '—';
+  if(isFinite(ndCpss)){
+    el('nd-cpss').style.color = ndCpss<4?'var(--red)':ndCpss<=12?'var(--green)':'var(--amber)';
+  }
+  const dosesStr = newDoses.map((d,i)=>`D${i+1}=${d}mg`).join('+');
+  el('nd-formula').textContent = ndTDD>0 ? `TDD=${dosesStr}=${ndTDD}mg  |  Cpss=${S}×${F}×${ndTDD}÷(${isFinite(CL)?CL.toFixed(3):'?'}×24)` : 'Isi dos';
+
+  // ── Compliance: mono vs poly range ──
+  const cpssExpMono = (clMono>0&&dose>0&&ivl>0) ? S*F*dose/(clMono*ivl) : NaN;
+  const cpssExpPoly = (clPoly>0&&dose>0&&ivl>0) ? S*F*dose/(clPoly*ivl) : NaN;
+
+  el('comp-cl-mono').textContent = clMono.toFixed(3);
+  el('comp-cl-poly').textContent = clPoly.toFixed(3);
+  el('comp-exp-mono').textContent = isFinite(cpssExpMono) ? cpssExpMono.toFixed(1) : '—';
+  el('comp-exp-poly').textContent = isFinite(cpssExpPoly) ? cpssExpPoly.toFixed(1) : '—';
+
+  const measEl = el('comp-meas-val');
+  measEl.textContent = cssMeas>0 ? cssMeas.toFixed(1) : '—';
+
+  // cpssExpPoly < cpssExpMono (poly CL higher → lower Cpss)
+  const expLow  = Math.min(cpssExpMono, cpssExpPoly); // poly = lower expected
+  const expHigh = Math.max(cpssExpMono, cpssExpPoly); // mono = higher expected
+
+  if(isFinite(expLow)&&cssMeas>0){
+    const inBand = cssMeas>=expLow*0.8 && cssMeas<=expHigh*1.2;
+    measEl.style.color = inBand ? 'var(--green)' : cssMeas<expLow*0.8 ? 'var(--red)' : 'var(--amber)';
+  }
+
+  // Bar
+  if(isFinite(expLow)&&isFinite(expHigh)&&cssMeas>0){
+    const barMax = Math.max(expHigh,cssMeas)*1.3;
+    el('comp-range-band').style.left  = (expLow/barMax*100).toFixed(1)+'%';
+    el('comp-range-band').style.width = ((expHigh-expLow)/barMax*100).toFixed(1)+'%';
+    el('comp-line-min').style.left    = (expLow/barMax*100).toFixed(1)+'%';
+    el('comp-line-max').style.left    = (expHigh/barMax*100).toFixed(1)+'%';
+    const dotPct = Math.min(cssMeas/barMax*100,97);
+    el('comp-meas-dot').style.left    = dotPct.toFixed(1)+'%';
+    el('comp-meas-dot').style.display = 'block';
+    const inBand2 = cssMeas>=expLow*0.8&&cssMeas<=expHigh*1.2;
+    el('comp-meas-dot').style.background = inBand2?'var(--green)':cssMeas<expLow*0.8?'var(--red)':'var(--amber)';
+    el('comp-bar-mid').textContent = `🔵 Diukur: ${cssMeas.toFixed(1)} | Julat: ${expLow.toFixed(1)}–${expHigh.toFixed(1)} mg/L`;
+    el('comp-bar-max').textContent = barMax.toFixed(0)+' mg/L';
+  } else {
+    el('comp-meas-dot').style.display='none';
+    el('comp-bar-mid').textContent='—';
+  }
+
+  // Verdict
+  const verdict=el('comp-verdict');
+  if(!isFinite(expLow)||cssMeas<=0){
+    verdict.className='compliance-verdict cv-empty';
+    verdict.innerHTML='Isi dos semasa, interval, F, S, dan Css measured.';
+  } else {
+    const lo=expLow.toFixed(1),hi=expHigh.toFixed(1),m=cssMeas.toFixed(1);
+    if(cssMeas>=expLow*0.8&&cssMeas<=expHigh*1.2){
+      verdict.className='compliance-verdict cv-good';
+      verdict.innerHTML=`✓ <strong>COMPLIANCE MEMUASKAN.</strong> Css diukur <strong>${m} mg/L</strong> dalam julat boleh terima (±20% dari Expected ${lo}–${hi} mg/L). Jika Css masih rendah walaupun dalam julat, pertimbangkan autoinduction masih berlaku.`;
+    } else if(cssMeas<expLow*0.8){
+      const d=((expLow-cssMeas)/expLow*100).toFixed(0);
+      verdict.className='compliance-verdict cv-low';
+      verdict.innerHTML=`✗ <strong>COMPLIANCE TIDAK MEMUASKAN / AUTOINDUCTION.</strong> Css diukur <strong>${m} mg/L</strong> adalah <strong>${d}%</strong> di bawah Expected Min (${lo} mg/L). <br><span style="font-size:0.8rem;font-weight:400;">Kemungkinan: (1) Compliance tidak memuaskan, (2) Autoinduction masih berlaku — CL lebih tinggi dari populasi, (3) Interaksi ubat penginduksi enzim. Temu bual pesakit dan semak masa ambil sampel.</span>`;
+    } else {
+      const d=((cssMeas-expHigh)/expHigh*100).toFixed(0);
+      verdict.className='compliance-verdict cv-high';
+      verdict.innerHTML=`⚠ <strong>Css MELEBIHI JANGKAAN.</strong> Css diukur <strong>${m} mg/L</strong> adalah <strong>${d}%</strong> di atas Expected Max (${hi} mg/L). <br><span style="font-size:0.8rem;font-weight:400;">Kemungkinan: CL lebih rendah dari populasi (inhibitor CYP3A4: erythromycin, valproate, azole antifungal, dll). Semak interaksi ubat dan pantau tanda toksisiti.</span>`;
+    }
+  }
+}
+
+// ── Patient header ──
+function updateHeader(){
+  const nama=el('pt-nama').value||'—';
+  const ic=el('pt-ic').value||'—';
+  const ward=el('pt-ward').value||'—';
+  const tarRaw=el('pt-tarikh').value;
+  let tarikh='—';
+  if(tarRaw){ const d=new Date(tarRaw); tarikh=d.toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'}); }
+  const html=`<div style="border:2px solid #2f6eb5;border-radius:8px;padding:10px 16px;margin-bottom:12px;background:#f0f6ff;">
+    <div style="display:flex;justify-content:space-between;">
+      <div><div style="font-size:1rem;font-weight:700;color:#1f4e79;">${nama}</div>
+        <div style="font-size:0.8rem;color:#444;margin-top:3px;">No. IC / MRN: <strong>${ic}</strong> &nbsp;|&nbsp; Ward: <strong>${ward}</strong></div></div>
+      <div style="text-align:right;font-size:0.78rem;color:#555;">
+        <div>Tarikh: <strong>${tarikh}</strong></div>
+        <div style="font-size:0.7rem;color:#888;margin-top:2px;">Carbamazepine TDM Calculator · CCPH 2nd Ed</div></div>
+    </div></div>`;
+  ['ph-init','ph-adj','ph-guide'].forEach(id=>{ const e=el(id); if(e) e.innerHTML=html; });
+}
+
+// ── PDF Export ──
+function exportPDF(){
+  const btn=el('pdf-btn'),lbl=el('pdf-label');
+  btn.disabled=true; lbl.textContent='⏳ Menjana...';
+  try{
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const PW=210,PH=297,M=14,CW=PW-M*2; let y=M,pageNum=1;
+    const C={navy:[31,78,121],blue:[47,110,181],teal:[31,92,78],green:[55,86,35],
+             greenLt:[226,239,218],amber:[125,90,0],amberLt:[255,243,205],
+             red:[192,0,0],redLt:[255,220,225],grey:[242,242,242],greyDk:[89,89,89],
+             white:[255,255,255],black:[26,26,26],linked:[235,243,251],rowAlt:[248,251,255],tealLt:[232,244,240]};
+    const nama=el('pt-nama').value.trim()||'—',ic=el('pt-ic').value.trim()||'—';
+    const ward=el('pt-ward').value.trim()||'—',tarRaw=el('pt-tarikh').value;
+    let tarikh='—';
+    if(tarRaw){const d=new Date(tarRaw);tarikh=d.toLocaleDateString('ms-MY',{day:'2-digit',month:'long',year:'numeric'});}
+    const printed=new Date().toLocaleString('ms-MY');
+    function footer(){ pdf.setDrawColor(200,200,200);pdf.line(M,PH-12,PW-M,PH-12);
+      pdf.setFontSize(6.5);pdf.setFont('helvetica','italic');pdf.setTextColor(...C.greyDk);
+      pdf.text('Carbamazepine TDM Calculator — CCPH 2nd Ed. Panduan sahaja.',M,PH-8);
+      pdf.text(`Dicetak: ${printed}`,PW-M,PH-8,{align:'right'}); }
+    function pageHdr(){ pdf.setFillColor(...C.navy);pdf.rect(0,0,PW,12,'F');
+      pdf.setTextColor(...C.white);pdf.setFontSize(9);pdf.setFont('helvetica','bold');
+      pdf.text('CARBAMAZEPINE (TEGRETOL) — TDM CALCULATOR',M,8);
+      pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.text(`Halaman ${pageNum}`,PW-M,8,{align:'right'});y=16;}
+    function newPage(){ footer();pdf.addPage();pageNum++;pageHdr(); }
+    function chk(n=10){ if(y+n>PH-16) newPage(); }
+    function sHdr(t,c=C.navy){ chk(12);pdf.setFillColor(...c);pdf.rect(M,y,CW,7,'F');
+      pdf.setTextColor(...C.white);pdf.setFontSize(7.5);pdf.setFont('helvetica','bold');
+      pdf.text(t.toUpperCase(),M+3,y+4.8);y+=9;}
+    function row(lbl,val,unit='',fill=C.greenLt,fg=C.green,hl=false){
+      chk(7);const rH=6.5;
+      if(hl){pdf.setFillColor(...C.navy);pdf.rect(M,y,CW,rH,'F');}
+      pdf.setTextColor(...(hl?C.white:C.black));pdf.setFontSize(8);pdf.setFont('helvetica',hl?'bold':'normal');
+      pdf.text(lbl,M+3,y+4.2);
+      const vx=M+115,vw=42;
+      if(!hl){pdf.setFillColor(...fill);pdf.rect(vx,y+0.8,vw,rH-1.6,'F');pdf.setDrawColor(180,200,180);pdf.rect(vx,y+0.8,vw,rH-1.6);}
+      pdf.setTextColor(...(hl?C.white:fg));pdf.setFont('helvetica','bold');pdf.setFontSize(8.5);
+      pdf.text(String(val),vx+vw/2,y+4.2,{align:'center'});
+      if(unit){pdf.setTextColor(...C.greyDk);pdf.setFont('helvetica','normal');pdf.setFontSize(7);pdf.text(unit,vx+vw+3,y+4.2);}
+      pdf.setDrawColor(230,235,240);pdf.line(M,y+rH,M+CW,y+rH);y+=rH;}
+    function spacer(h=3){y+=h;}
+    function note(t){chk(5);pdf.setFontSize(7);pdf.setFont('helvetica','italic');pdf.setTextColor(...C.greyDk);pdf.text(t,M+3,y+3.5);y+=6;}
+
+    pageHdr();
+    // Patient box
+    pdf.setFillColor(240,246,255);pdf.rect(M,y,CW,18,'F');
+    pdf.setDrawColor(...C.blue);pdf.setLineWidth(0.5);pdf.rect(M,y,CW,18);pdf.setLineWidth(0.2);
+    pdf.setFontSize(11);pdf.setFont('helvetica','bold');pdf.setTextColor(...C.navy);pdf.text(nama,M+5,y+7);
+    pdf.setFontSize(8);pdf.setFont('helvetica','normal');pdf.setTextColor(...C.black);
+    pdf.text(`No. IC/MRN: ${ic}`,M+5,y+13);pdf.text(`Ward: ${ward}`,M+5,y+17);
+    pdf.setFont('helvetica','bold');pdf.text(`Tarikh: ${tarikh}`,PW-M-5,y+13,{align:'right'});
+    pdf.setFont('helvetica','normal');pdf.setTextColor(...C.greyDk);
+    pdf.text('Carbamazepine TDM — CCPH 2nd Ed',PW-M-5,y+17,{align:'right'});y+=22;
+
+    // Init inputs
+    sHdr('Parameter Input — Dose Initiation',C.blue);
+    const F_i=v('i-F'),S_i=v('i-S'),bw_i=v('i-bw'),css_i=v('i-css'),ivl_i=v('i-ivl');
+    const isPeds=sv('i-age-grp')==='peds',isPoly=sv('i-therapy')==='poly';
+    const inpRows=[['BW',bw_i.toFixed(0),'kg'],['Kumpulan',isPeds?'Pediatrik':'Dewasa',''],
+      ['Terapi',isPoly?'Polytherapy':'Monotherapy',''],['F',F_i.toFixed(2),''],['S',S_i.toFixed(2),''],
+      ['Css Desired',css_i.toFixed(0),'mg/L'],['Interval',ivl_i.toFixed(0),'hr'],
+      ['CL/kg (slider)',el('r-clkg-val').textContent,'L/kg/hr'],['Vd/kg',el('r-vdkg').textContent,'']];
+    const iCW=CW/3;
+    inpRows.forEach((inp,i)=>{
+      if(i%3===0){chk(7);pdf.setFillColor(...(Math.floor(i/3)%2===0?C.white:C.rowAlt));pdf.rect(M,y,CW,6,'F');pdf.setDrawColor(230,235,240);pdf.line(M,y+6,M+CW,y+6);}
+      const ox=M+(i%3)*iCW;
+      pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.setTextColor(...C.greyDk);pdf.text(inp[0]+':',ox+3,y+4);
+      pdf.setFont('helvetica','bold');pdf.setTextColor(...C.navy);pdf.text(`${inp[1]} ${inp[2]}`,ox+iCW-4,y+4,{align:'right'});
+      if(i%3===2||i===inpRows.length-1) y+=6;
+    });
+    spacer(4);
+    sHdr('Kiraan PK',C.teal);
+    row('a) CL (L/hr)',el('r-cl').textContent,'L/hr');row('b) Vd (L)',el('r-vd').textContent,'L');
+    row('c) Ke (hr⁻¹)',el('r-ke').textContent,'hr⁻¹');row('d) t½ (hr)',el('r-t12').textContent,'hr');
+    spacer(3);
+    sHdr('Cadangan Dos',C.green);
+    row('e) Maintenance Dose (mg)',el('r-md').textContent,'mg',C.greenLt,C.green,true);
+    row('MD — dibundarkan (mg)',el('r-md-round').textContent,'',C.grey,C.greyDk);
+    spacer(3);
+    note('⚡ Mulakan pada 1/4-1/3 dos ini. Tingkatkan setiap 1-2 minggu. SS awal 2-3 minggu.');
+
+    newPage();
+    // Patient repeat
+    pdf.setFillColor(240,246,255);pdf.rect(M,y,CW,10,'F');pdf.setDrawColor(...C.blue);pdf.setLineWidth(0.5);pdf.rect(M,y,CW,10);pdf.setLineWidth(0.2);
+    pdf.setFontSize(8);pdf.setFont('helvetica','bold');pdf.setTextColor(...C.navy);
+    pdf.text(`${nama} | IC/MRN: ${ic} | Ward: ${ward} | Tarikh: ${tarikh}`,M+5,y+6.5);y+=14;
+
+    sHdr('Regimen & CL',C.blue);
+    const cssMeasPDF=parseFloat(el('a-css-meas').value)||0;
+    const adjRows=[['Dos semasa',v('a-dose').toFixed(0),'mg'],['Interval',v('a-ivl').toFixed(0),'hr'],
+      ['F',v('a-F').toFixed(2),''],['S',v('a-S').toFixed(2),''],['Css measured',cssMeasPDF.toFixed(1),'mg/L'],['','','']];
+    adjRows.forEach((inp,i)=>{
+      if(i%3===0){chk(7);pdf.setFillColor(...(Math.floor(i/3)%2===0?C.white:C.rowAlt));pdf.rect(M,y,CW,6,'F');pdf.setDrawColor(230,235,240);pdf.line(M,y+6,M+CW,y+6);}
+      const ox=M+(i%3)*iCW;
+      if(inp[0]){pdf.setFontSize(7);pdf.setFont('helvetica','normal');pdf.setTextColor(...C.greyDk);pdf.text(inp[0]+':',ox+3,y+4);pdf.setFont('helvetica','bold');pdf.setTextColor(...C.navy);pdf.text(`${inp[1]} ${inp[2]}`,ox+iCW-4,y+4,{align:'right'});}
+      if(i%3===2||i===adjRows.length-1) y+=6;
+    });
+    spacer(4);
+    sHdr('CL Populasi (Julat)',C.teal);
+    row('Dewasa Monotherapy (0.064)',el('r-cl-mono').textContent+' L/hr','',C.tealLt,C.teal);
+    row('Dewasa Polytherapy (0.10)',el('r-cl-poly').textContent+' L/hr','',C.greenLt,C.green);
+    row('CL Pesakit (dari Css)',el('r-acl').textContent,'L/hr',[240,246,255],[31,78,121],true);
+    spacer(3);
+    sHdr('Dos Baru',C.green);
+    row('Css Target',v('a-css-tgt').toFixed(0)+' mg/L','');row('Interval Baru',v('a-ivl-new').toFixed(0)+' hr','');
+    row('New Maintenance Dose',el('r-amd').textContent,'mg',C.greenLt,C.green,true);
+    row('New MD — dibundarkan',el('r-amd-round').textContent,'',C.grey,C.greyDk);
+    row('Expected Cpss (exact)',el('r-cpss-exact').textContent,'mg/L',C.tealLt,C.teal);
+    row('Expected Cpss (rounded)',el('r-cpss-round').textContent,'mg/L',C.tealLt,C.teal);
+    spacer(3);
+    // Status
+    const css_m=cssMeasPDF;
+    let sBg=C.grey,sFg=C.greyDk;
+    if(css_m<4){sBg=C.redLt;sFg=C.red;}else if(css_m<=12){sBg=C.greenLt;sFg=C.green;}else{sBg=C.redLt;sFg=C.red;}
+    chk(12);pdf.setFillColor(...sBg);pdf.rect(M,y,CW,9,'F');pdf.setDrawColor(...sFg);pdf.setLineWidth(0.5);pdf.rect(M,y,CW,9);pdf.setLineWidth(0.2);
+    pdf.setTextColor(...sFg);pdf.setFontSize(9);pdf.setFont('helvetica','bold');
+    const sLabel=css_m<4?'SUBTHERAPEUTIC (<4)':css_m<=12?'DALAM SASARAN (4-12)':'TOKSIK (>12)';
+    pdf.text(`Css = ${css_m.toFixed(1)} mg/L  —  ${sLabel}`,PW/2,y+6,{align:'center'});y+=12;
+
+    footer();
+    const safeName=(nama.replace(/[^a-zA-Z0-9]/g,'_').substring(0,20)||'Pesakit');
+    pdf.save(`CBZ_TDM_${safeName}_${tarRaw||'tarikh'}.pdf`);
+  } catch(err){ console.error(err);alert('Ralat PDF: '+err.message); }
+  finally{ btn.disabled=false;lbl.textContent='📄 Export PDF'; }
+}
+
+// ── Renal dose adjustment ──
+function calcRenal(){
+  const gfr  = parseFloat(el('a-gfr')?.value) || 0;
+  const mode = sv('a-renal-mode');
+  const isPeds = sv('i-age-grp') === 'peds';
+  const res  = el('renal-result');
+  if(!res) return;
+
+  let txt, bg, border, color;
+
+  if (mode === 'hd') {
+    txt = '💉 <strong>Intermittent Haemodialysis:</strong> Berikan <strong>75% dos normal</strong>. Pada hari dialisis, berikan dos SELEPAS sesi haemodialysis selesai.';
+    bg='#fff3e0'; border='#e67e22'; color='#7b3c00';
+  } else if (mode === 'pd') {
+    txt = '🩺 <strong>Peritoneal Dialysis (PD):</strong> Berikan <strong>75% dos normal</strong>.';
+    bg='#fff3e0'; border='#e67e22'; color='#7b3c00';
+  } else if (mode === 'crrt_adult') {
+    txt = '🔁 <strong>CRRT (Dewasa):</strong> <strong>Tiada pelarasan dos diperlukan</strong>. Pantau serum concentration secara berkala.';
+    bg='var(--green-lt)'; border='var(--green)'; color='var(--green)';
+  } else if (mode === 'crrt_peds') {
+    txt = '🔁 <strong>CRRT (Pediatrik):</strong> Berikan <strong>75% dos normal</strong>. Pantau serum concentration secara berkala.';
+    bg='#fff3e0'; border='#e67e22'; color='#7b3c00';
+  } else {
+    // Normal — based on GFR
+    if (!gfr) {
+      txt = 'Isi GFR / CrCL untuk cadangan pelarasan dos.';
+      bg='var(--grey)'; border='#ccc'; color='var(--grey-dk)';
+    } else if (isPeds) {
+      // Pediatric threshold: 10 mL/min/1.73m²
+      if (gfr >= 10) {
+        txt = `✓ <strong>GFR ${gfr} mL/min/1.73m² (≥10):</strong> Tiada pelarasan dos diperlukan.`;
+        bg='var(--green-lt)'; border='var(--green)'; color='var(--green)';
+      } else {
+        txt = `⚠ <strong>GFR ${gfr} mL/min/1.73m² (&lt;10):</strong> Berikan <strong>75% dos normal</strong>. (Dose berdasarkan 10–20 mg/kg/hari ÷ q8–12h)`;
+        bg='var(--red-lt)'; border='var(--red)'; color='var(--red)';
+      }
+    } else {
+      // Adult threshold: 10 mL/min
+      if (gfr >= 10) {
+        txt = `✓ <strong>GFR ${gfr} mL/min (≥10):</strong> Tiada pelarasan dos diperlukan.`;
+        bg='var(--green-lt)'; border='var(--green)'; color='var(--green)';
+      } else {
+        txt = `⚠ <strong>GFR ${gfr} mL/min (&lt;10):</strong> Berikan <strong>75% dos normal</strong>.`;
+        bg='var(--red-lt)'; border='var(--red)'; color='var(--red)';
+      }
+    }
+  }
+
+  // Calculate 75% dose if applicable
+  const curDose = v('a-dose');
+  const curIvl  = v('a-ivl');
+  const needs75 = mode==='hd'||mode==='pd'||mode==='crrt_peds'||
+                  (mode==='none'&&gfr>0&&gfr<10);
+  if (needs75 && curDose > 0) {
+    const adj75 = Math.ceil(curDose*0.75/200)*200; // round up to 200mg
+    txt += `<br><span style="font-size:0.8rem;font-weight:400;">Dos semasa ${curDose}mg → <strong>75% = ${(curDose*0.75).toFixed(0)}mg</strong> (dibundarkan: ${adj75}mg) setiap ${curIvl}h</span>`;
+  }
+
+  res.innerHTML = txt;
+  res.style.background = bg;
+  res.style.borderColor = border;
+  res.style.color = color;
+}
+
+// ── CBZ Next Dose / Resample Schedule ──────────────────────────────
+function getMasaLabel(dt) {
+  const h = dt.getHours();
+  if (h >= 0  && h < 6)  return 'TENGAH MALAM';
+  if (h >= 6  && h < 12) return 'PAGI';
+  if (h >= 12 && h < 15) return 'TENGAHARI';
+  if (h >= 15 && h < 19) return 'PETANG';
+  return 'MALAM';
+}
+function padZ(n) { return String(n).padStart(2,'0'); }
+function cbzFmtTime(dt) { return `${padZ(dt.getHours())}:${padZ(dt.getMinutes())} ${getMasaLabel(dt)}`; }
+function cbzFmtDate(dt) {
+  const days   = ['Ahad','Isnin','Selasa','Rabu','Khamis','Jumaat','Sabtu'];
+  const months = ['Jan','Feb','Mac','Apr','Mei','Jun','Jul','Og','Sep','Okt','Nov','Dis'];
+  return `${days[dt.getDay()]}, ${dt.getDate()} ${months[dt.getMonth()]} ${dt.getFullYear()}`;
+}
+function cbzFmtDT(dt) { return `${cbzFmtDate(dt)}, ${cbzFmtTime(dt)}`; }
+
+function calcCBZNextDose() {
+  const dateVal  = el('cbz-nd-date')?.value;
+  const timeVal  = el('cbz-nd-time')?.value || '08:00';
+  const freqH    = parseInt(sv('cbz-freq')) || 12;
+  const ssDays   = parseInt(sv('cbz-ss-days')) || 5;
+  const ndOut    = el('cbz-nd-output');
+  if (!ndOut || !dateVal) { if(ndOut) ndOut.style.display='none'; return; }
+
+  // Auto-get dose from calc results if not manually entered
+  let dosePer = parseFloat(el('cbz-dose-per')?.value) || 0;
+  if (!dosePer) {
+    // Try to get from r-amd-round or r-amd
+    const rndTxt = el('r-amd-round')?.textContent || '';
+    dosePer = parseFloat(rndTxt) || 0;
+  }
+
+  const startDT = new Date(`${dateVal}T${timeVal}:00`);
+  if (isNaN(startDT.getTime())) { ndOut.style.display='none'; return; }
+
+  // Get t½ from calcAdj results to estimate SS timing
+  const t12El = parseFloat(0) || NaN; // CBZ doesn't compute t½ directly in adj tab — use Ke if available
+  const ke  = parseFloat(el('r-acl')?.textContent) || NaN; // CL patient
+  // SS = 4-5 × t½ = 4-5 × 0.693/Ke_est; CBZ avg t½ ~12-18h mono, so SS ~2-5 days
+  // We use user-selected ssDays
+
+  // Build schedule: show every dose for the first 2 days, then the sample day
+  const freqLabel = { 8:'TDS (q8h)', 12:'BD (q12h)', 24:'OD (q24h)' }[freqH] || `q${freqH}h`;
+  const dosesPerDay = Math.round(24 / freqH);
+  const totalDoses  = ssDays * dosesPerDay + 1; // +1 so we show the dose on SS day
+
+  const tbody = el('cbz-nd-tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  // Track which day each dose falls on
+  let shownDays = new Set();
+  const rows = [];
+  for (let i = 1; i <= totalDoses; i++) {
+    const dt = new Date(startDT.getTime() + i * freqH * 3600000);
+    const dayNum = Math.ceil(i / dosesPerDay);
+    const isFirstOfDay = !shownDays.has(dayNum);
+    if (isFirstOfDay) shownDays.add(dayNum);
+    const isSS   = dayNum === ssDays && isFirstOfDay;
+    const isLast = i === totalDoses;
+    rows.push({ i, dt, dayNum, isFirstOfDay, isSS, isLast });
+  }
+
+  // Render only: first 2 days fully, then skip to SS day
+  const showFull = new Set([1, 2]);
+  const showRows = rows.filter(r => showFull.has(r.dayNum) || r.isSS || r.isLast);
+
+  let lastRenderedDay = 0;
+  showRows.forEach((r, ri) => {
+    // Add "..." separator if days skipped
+    if (r.dayNum > lastRenderedDay + 1 && ri > 0) {
+      const sep = document.createElement('tr');
+      sep.style.background = '#f0f4f8';
+      sep.innerHTML = `<td colspan="5" style="padding:6px 14px;text-align:center;font-size:0.75rem;color:var(--grey-dk);font-style:italic;">
+        · · · Hari ${lastRenderedDay+1} – ${r.dayNum-1} · · ·</td>`;
+      tbody.appendChild(sep);
+    }
+    lastRenderedDay = r.dayNum;
+
+    const isSS = r.isSS;
+    const tr = document.createElement('tr');
+    tr.style.background = isSS ? 'var(--amber-lt)' : r.isLast ? '#f0fff4' : r.dayNum % 2 === 0 ? '#f8fbff' : '#fff';
+    tr.innerHTML = `
+      <td style="text-align:center;font-weight:700;color:var(--navy-mid);padding:8px 12px;">${r.dayNum}</td>
+      <td style="padding:8px 12px;font-size:0.78rem;font-weight:600;color:var(--text);">${cbzFmtDate(r.dt)}</td>
+      <td style="padding:8px 12px;font-family:var(--mono);font-size:0.82rem;font-weight:700;color:var(--blue);">${cbzFmtTime(r.dt)}</td>
+      <td style="text-align:center;font-family:var(--mono);font-weight:700;color:var(--green);padding:8px 12px;">
+        ${dosePer > 0 ? dosePer + ' mg' : '—'}
+      </td>
+      <td style="padding:8px 12px;font-size:0.76rem;color:${isSS ? 'var(--amber)' : r.i===1 ? 'var(--blue)' : 'var(--grey-dk)'};">
+        ${r.i === 1
+          ? '← Dos pertama selepas redose'
+          : isSS
+            ? `⭐ Hari ke-${ssDays} — Ambil sample (trough) sebelum dos ini`
+            : r.isLast && !isSS
+              ? '← Dos pada hari semak'
+              : ''}
+      </td>`;
+    tbody.appendChild(tr);
+  });
+
+  // Sample time = 30 min before the SS-day dose
+  const ssDoseDT    = new Date(startDT.getTime() + ssDays * dosesPerDay * freqH * 3600000);
+  const sampleDT    = new Date(ssDoseDT.getTime() - 30 * 60000);
+  const nextDose1DT = new Date(startDT.getTime() + freqH * 3600000);
+
+  // Update cards
+  setText('cbz-next-dose-dt', cbzFmtDT(nextDose1DT));
+  setText('cbz-next-dose-mg',  dosePer > 0 ? `${dosePer} mg ${freqLabel}` : freqLabel);
+  setText('cbz-sample-dt',    cbzFmtDT(sampleDT));
+
+  // Recommendation text
+  const recDiv = el('cbz-rec-text');
+  if (recDiv) {
+    recDiv.innerHTML =
+      `<strong>Cadangan:</strong> Mulakan CBZ ` +
+      (dosePer > 0 ? `<strong>${dosePer} mg ${freqLabel}</strong>` : `<strong>${freqLabel}</strong>`) +
+      ` bermula <strong>${cbzFmtDT(nextDose1DT)}</strong>. ` +
+      `Ambil sample trough (pre-dose) pada <strong>${cbzFmtDT(sampleDT)}</strong> ` +
+      `(30 minit sebelum dos hari ke-${ssDays}). ` +
+      `<br><strong>⚡ Penting:</strong> Jika dos ditingkatkan akibat autoinduction masih berlaku, semak semula selepas <strong>2–3 minggu</strong> untuk steady-state sebenar.`;
+  }
+
+  ndOut.style.display = '';
+}
+
+(function(){
+  const today=new Date().toISOString().split('T')[0];
+  el('pt-tarikh').value=today;
+  if(el('cbz-nd-date')) el('cbz-nd-date').value=today;
+  updateHeader();
+  calcInit();
+  calcAdj();
+  showGuideline();
+  calcRenalAdj();
+})();
+</script>
+<!-- ════════════ TAB 3 — Dosing Guidelines & Renal ════════════ -->
+<div class="tab-content" id="tab-guide">
+  <div class="print-patient-header" id="ph-guide"></div>
+
+  <!-- Dosing by indication -->
+  <div class="section">
+    <div class="section-header sh-navy">PANDUAN DOS — Berdasarkan Indikasi [CCPH 2nd Ed]</div>
+
+    <!-- Indikasi selector -->
+    <div style="padding:10px 14px 6px;border-bottom:1px solid #eef2f7;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:0.78rem;font-weight:600;color:var(--navy-mid);">Indikasi:</span>
+      <select id="g-indication" onchange="showGuideline()" style="width:auto;padding:5px 12px;font-size:0.78rem;font-weight:500;background:var(--blue-lt);">
+        <option value="epilepsy_adult">Epilepsi — Dewasa</option>
+        <option value="epilepsy_peds_12_18">Epilepsi — Kanak-kanak 12–18 thn</option>
+        <option value="epilepsy_peds_1_12">Epilepsi — Kanak-kanak 1 bulan–12 thn</option>
+        <option value="bipolar">Bipolar Disorder — Dewasa</option>
+        <option value="neuralgia">Trigeminal / Glossopharyngeal Neuralgia — Dewasa</option>
+      </select>
+    </div>
+
+    <div id="guideline-content" style="padding:16px 18px;">
+      <!-- Filled by JS -->
+    </div>
+  </div>
+
+  <!-- Renal impairment table -->
+  <div class="section">
+    <div class="section-header" style="background:#7b1c1c;">⚕ PELARASAN DOS — Fungsi Renal [CCPH 2nd Ed]</div>
+
+    <div style="padding:4px 0;overflow-x:auto;">
+      <table class="ref-table">
+        <thead>
+          <tr>
+            <th>Kumpulan</th>
+            <th>Fungsi Renal / Mod</th>
+            <th>Pelarasan Dos</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- ADULTS -->
+          <tr><td colspan="3" style="background:var(--navy-mid);color:#fff;font-weight:700;padding:7px 12px;font-size:0.76rem;">DEWASA</td></tr>
+          <tr class="ref-ther"><td>Dewasa</td><td>GFR ≥10 mL/min</td><td><strong>Tiada pelarasan diperlukan</strong></td></tr>
+          <tr class="ref-tox"><td>Dewasa</td><td>GFR &lt;10 mL/min</td><td><strong>75% dos normal</strong></td></tr>
+          <tr class="ref-warn"><td>Dewasa</td><td>Intermittent Haemodialysis</td><td>75% dos normal &nbsp;|&nbsp; berikan <em>selepas</em> dialisis</td></tr>
+          <tr class="ref-warn"><td>Dewasa</td><td>Peritoneal Dialysis (PD)</td><td>75% dos normal</td></tr>
+          <tr class="ref-ther"><td>Dewasa</td><td>CRRT</td><td><strong>Tiada pelarasan diperlukan</strong></td></tr>
+          <!-- PEDS -->
+          <tr><td colspan="3" style="background:var(--blue);color:#fff;font-weight:700;padding:7px 12px;font-size:0.76rem;">PEDIATRIK / ADOLESCENT</td></tr>
+          <tr class="ref-ther"><td>Peds/Adolescent</td><td>GFR ≥10 mL/min/1.73m²</td><td><strong>Tiada pelarasan diperlukan</strong></td></tr>
+          <tr class="ref-tox"><td>Peds/Adolescent</td><td>GFR &lt;10 mL/min/1.73m²</td><td><strong>75% dos normal</strong></td></tr>
+          <tr class="ref-warn"><td>Peds/Adolescent</td><td>Intermittent Haemodialysis</td><td>75% dos normal &nbsp;|&nbsp; berikan <em>selepas</em> dialisis</td></tr>
+          <tr class="ref-warn"><td>Peds/Adolescent</td><td>Peritoneal Dialysis (PD)</td><td>75% dos normal</td></tr>
+          <tr class="ref-warn"><td>Peds/Adolescent</td><td>CRRT</td><td>75% dos normal &nbsp;|&nbsp; pantau serum concentration</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="padding:8px 14px;font-size:0.71rem;color:#7a8898;font-style:italic;border-top:1px solid #eef2f7;">
+      * Dos renally adjusted untuk peds berdasarkan 10–20 mg/kg/hari dibahagi setiap 8–12 jam.
+    </div>
+  </div>
+
+  <!-- Renal dose calculator -->
+  <div class="section">
+    <div class="section-header" style="background:#7b1c1c;">🧮 KALKULATOR PELARASAN RENAL</div>
+    <div class="note-row">Masukkan dos asal → sistem akan kira dos terlaras (75%) dengan otomatik</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:0;padding:0;">
+      <div style="padding:12px 14px;border-right:1px solid #eef2f7;">
+        <div style="font-size:0.72rem;font-weight:600;color:var(--grey-dk);margin-bottom:6px;text-transform:uppercase;">Dos Asal (mg)</div>
+        <input type="number" id="g-dose-orig" value="400" step="200" oninput="calcRenalAdj()" style="width:100%;padding:7px 10px;border:1.5px solid #b8d0e8;border-radius:6px;background:var(--blue-lt);font-family:var(--mono);font-size:0.9rem;font-weight:700;text-align:center;outline:none;">
+      </div>
+      <div style="padding:12px 14px;border-right:1px solid #eef2f7;">
+        <div style="font-size:0.72rem;font-weight:600;color:var(--amber);margin-bottom:6px;text-transform:uppercase;">75% Dos (mg) — Tepat</div>
+        <div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--amber);text-align:center;padding:7px 0;" id="g-dose-75">—</div>
+      </div>
+      <div style="padding:12px 14px;">
+        <div style="font-size:0.72rem;font-weight:600;color:var(--teal);margin-bottom:6px;text-transform:uppercase;">75% Dos — Dibundarkan (200mg)</div>
+        <div style="font-family:var(--mono);font-size:1.3rem;font-weight:700;color:var(--teal);text-align:center;padding:7px 0;" id="g-dose-75-round">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Drug interactions -->
+  <div class="section">
+    <div class="section-header sh-amber">⚠ INTERAKSI UBAT PENTING — CBZ & CYP3A4</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:0;">
+      <div style="padding:12px 14px;border-right:2px solid #eef2f7;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--red);margin-bottom:8px;">🔺 Meningkatkan Konsentrasi CBZ<br><span style="font-size:0.68rem;font-weight:400;color:var(--grey-dk);">(CYP3A4 Inhibitors)</span></div>
+        <div style="font-size:0.78rem;color:var(--text);line-height:1.8;">
+          Clarithromycin &bull; Erythromycin &bull; Diltiazem &bull; Verapamil<br>
+          Fluoxetine &bull; Isoniazid &bull; Loratadine &bull; Valproate<br>
+          Grapefruit juice &bull; Azole antifungals<br>
+          <span style="font-size:0.7rem;color:var(--grey-dk);">(Fluconazole, Itraconazole, Ketoconazole)</span><br>
+          Protease inhibitors<br>
+          <span style="font-size:0.7rem;color:var(--grey-dk);">(Indinavir, Nelfinavir, Ritonavir)</span>
+        </div>
+      </div>
+      <div style="padding:12px 14px;">
+        <div style="font-size:0.78rem;font-weight:700;color:var(--green);margin-bottom:8px;">🔻 Mengurangkan Konsentrasi CBZ<br><span style="font-size:0.68rem;font-weight:400;color:var(--grey-dk);">(CYP3A4 Inducers)</span></div>
+        <div style="font-size:0.78rem;color:var(--text);line-height:1.8;">
+          Phenobarbital &bull; Phenytoin &bull; Primidone<br>
+          Rifampicin &bull; Cisplatin &bull; Doxorubicin<br>
+          Theophylline<br>
+          <strong style="color:var(--amber);">Carbamazepine sendiri (Autoinduction)</strong>
+        </div>
+      </div>
+    </div>
+    <div style="padding:8px 14px;font-size:0.71rem;color:#7a8898;font-style:italic;border-top:1px solid #eef2f7;">
+      ⚠ CBZ juga menginduksi CYP1A2, CYP2C9 dan CYP3A4 — boleh menurunkan kepekatan ubat lain yang dimetabolisme melalui enzim ini.
+    </div>
+  </div>
+
+  <div class="warning-bar">⚠ Maklumat ini adalah panduan sahaja berdasarkan CCPH 2nd Ed. Sentiasa rujuk doktor atau farmasis sebelum membuat keputusan klinikal.</div>
+</div>
+
+<script>
+// ── Dosing guidelines data ──
+const GUIDELINES = {
+  epilepsy_adult: {
+    title: 'Epilepsi — Dewasa',
+    color: 'var(--navy-mid)',
+    rows: [
+      { label:'Initial',
+        val:'400 mg/hari',
+        desc:'2 dos terbahagi — tablet atau extended release tablet<br>ATAU 4 dos terbahagi — oral suspension' },
+      { label:'Maintenance',
+        val:'800–1200 mg/hari',
+        desc:'Tingkat sehingga 200 mg/hari pada selang mingguan<br>• CR/XR tablet: regimen 2× sehari<br>• Formulation lain: 3–4× sehari<br>Tingkat sehingga respons optimum dan tahap terapeutik dicapai' },
+      { label:'Maximum',
+        val:'1600 mg/hari',
+        desc:'Sesetengah pesakit memerlukan sehingga 2400 mg/hari' },
+    ],
+    note:'Autoinduction: mulakan rendah (200–400 mg), tingkat ~200 mg setiap 1–2 minggu. Steady-state sebenar dicapai 2–3 minggu selepas autoinduction selesai.'
+  },
+  epilepsy_peds_12_18: {
+    title: 'Epilepsi — Kanak-kanak 12–18 tahun',
+    color: 'var(--teal)',
+    rows: [
+      { label:'Initial',     val:'100–200 mg', desc:'1–2 kali sehari' },
+      { label:'Maintenance', val:'200–400 mg',  desc:'2–3 kali sehari | Tingkat perlahan-lahan mengikut respons' },
+      { label:'Maximum',     val:'1800 mg/hari', desc:'Dalam sesetengah kes' },
+    ],
+    note:'Pantau ketat akibat variabiliti farmakokinetik yang lebih tinggi pada kanak-kanak.'
+  },
+  epilepsy_peds_1_12: {
+    title: 'Epilepsi — Kanak-kanak 1 bulan–12 tahun',
+    color: 'var(--teal)',
+    rows: [
+      { label:'Initial',     val:'5 mg/kg/malam', desc:'atau 2.5 mg/kg 2× sehari' },
+      { label:'Escalation',  val:'+2.5–5 mg/kg',  desc:'Setiap 3–7 hari mengikut respons' },
+      { label:'Maintenance', val:'5 mg/kg',        desc:'2–3 kali sehari' },
+      { label:'Maximum',     val:'20 mg/kg/hari',  desc:'Had dos harian' },
+    ],
+    note:'Dos berdasarkan berat badan. Pantau serum CBZ dan klinik kesan sampingan.'
+  },
+  bipolar: {
+    title: 'Bipolar Disorder — Dewasa',
+    color: 'var(--purple)',
+    rows: [
+      { label:'Initial',
+        val:'400 mg/hari',
+        desc:'2 dos terbahagi — tablet atau extended release tablet<br>ATAU 4 dos terbahagi — oral suspension' },
+      { label:'Maintenance',
+        val:'Laras mengikut respons',
+        desc:'Boleh ditingkat atau diturunkan dalam increment 200 mg/hari' },
+      { label:'Maximum',
+        val:'1600 mg/hari',
+        desc:'' },
+    ],
+    note:'Tahap terapeutik: 4–12 mg/L. Pantau tahap serum secara berkala dan klinik.'
+  },
+  neuralgia: {
+    title: 'Trigeminal / Glossopharyngeal Neuralgia — Dewasa',
+    color: 'var(--amber)',
+    rows: [
+      { label:'Initial',
+        val:'200 mg/hari',
+        desc:'2 dos terbahagi — tablet atau extended release tablet<br>ATAU 4 dos terbahagi — oral suspension<br>Ambil bersama makanan. Tingkat secara beransur dalam increment 200 mg/hari mengikut keperluan' },
+      { label:'Maintenance',
+        val:'400–800 mg/hari',
+        desc:'2 dos terbahagi — tablet atau extended release tablet<br>ATAU 4 dos terbahagi — oral suspension' },
+      { label:'Maximum',
+        val:'1200 mg/hari',
+        desc:'' },
+    ],
+    note:'Semak sama ada dos boleh dikurangkan setelah nyeri terkawal — gunakan dos efektif minimum.'
+  },
+};
+
+function showGuideline(){
+  const key = sv('g-indication');
+  const g   = GUIDELINES[key];
+  if(!g) return;
+
+  let html = `<div style="font-size:0.9rem;font-weight:700;color:${g.color};margin-bottom:10px;padding-bottom:6px;border-bottom:2px solid ${g.color};">
+    ${g.title}</div>
+  <table style="width:100%;border-collapse:collapse;font-size:0.82rem;margin-bottom:10px;">
+    <thead><tr>
+      <th style="background:var(--blue);color:#fff;padding:7px 12px;text-align:left;width:130px;">Parameter</th>
+      <th style="background:var(--blue);color:#fff;padding:7px 12px;text-align:center;width:160px;">Dos</th>
+      <th style="background:var(--blue);color:#fff;padding:7px 12px;text-align:left;">Nota</th>
+    </tr></thead><tbody>`;
+
+  const rowBgs = ['#fff','#f8fbff','#fff','#f8fbff','#fff'];
+  g.rows.forEach((r,i) => {
+    html += `<tr style="background:${rowBgs[i%2]};">
+      <td style="padding:9px 12px;font-weight:700;color:var(--navy-mid);">${r.label}</td>
+      <td style="padding:9px 12px;text-align:center;font-family:var(--mono);font-weight:700;font-size:0.9rem;color:var(--green);background:var(--green-lt);">${r.val}</td>
+      <td style="padding:9px 12px;color:#444;line-height:1.6;">${r.desc}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table>`;
+  if(g.note){
+    html += `<div style="padding:8px 12px;background:#fff8e6;border-left:4px solid #e67e22;border-radius:4px;font-size:0.76rem;color:#7b3c00;">
+      ⚡ ${g.note}</div>`;
+  }
+  el('guideline-content').innerHTML = html;
+}
+
+function calcRenalAdj(){
+  const orig = parseFloat(el('g-dose-orig')?.value) || 0;
+  const adj75 = orig * 0.75;
+  const adj75r = Math.ceil(adj75/200)*200;
+  el('g-dose-75').textContent      = orig > 0 ? adj75.toFixed(0)+' mg' : '—';
+  el('g-dose-75-round').textContent = orig > 0 ? adj75r.toFixed(0)+' mg' : '—';
+}
+
+</script>
+
+</body>
+</html>
